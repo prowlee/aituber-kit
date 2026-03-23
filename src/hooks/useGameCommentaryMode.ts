@@ -50,21 +50,13 @@ export function useGameCommentaryMode({
 }: UseGameCommentaryModeProps): UseGameCommentaryModeReturn {
   // ----- 設定の取得 -----
   const ss = settingsStore.getState()
-  const gameCommentaryEnabled =
-    (ss as Record<string, unknown>).gameCommentaryEnabled === true
-  const gameCommentaryPlaying =
-    (ss as Record<string, unknown>).gameCommentaryPlaying === true
+  const gameCommentaryEnabled = ss.gameCommentaryEnabled
+  const gameCommentaryPlaying = ss.gameCommentaryPlaying
   const gameCommentaryCaptureInterval =
-    ((ss as Record<string, unknown>).gameCommentaryCaptureInterval as number) ||
-    15
-  const gameCommentaryContextCount =
-    ((ss as Record<string, unknown>).gameCommentaryContextCount as number) || 5
-  const gameCommentaryImageQuality =
-    ((ss as Record<string, unknown>).gameCommentaryImageQuality as number) ||
-    0.7
-  const gameCommentaryResizeWidth =
-    ((ss as Record<string, unknown>).gameCommentaryResizeWidth as number) ||
-    1024
+    ss.gameCommentaryCaptureInterval || 15
+  const gameCommentaryContextCount = ss.gameCommentaryContextCount || 5
+  const gameCommentaryImageQuality = ss.gameCommentaryImageQuality || 0.7
+  const gameCommentaryResizeWidth = ss.gameCommentaryResizeWidth || 1024
 
   // settingsStoreの変更を監視して再レンダリングをトリガー
   const [, forceUpdate] = useState(0)
@@ -226,8 +218,7 @@ export function useGameCommentaryMode({
 
       // chatLogに保存（YouTube/Mastraとの文脈共有用）
       const currentSaveToChat =
-        (settingsStore.getState() as Record<string, unknown>)
-          .gameCommentarySaveToChat === true
+        settingsStore.getState().gameCommentarySaveToChat === true
       if (currentSaveToChat) {
         homeStore.getState().upsertMessage({
           role: 'assistant',

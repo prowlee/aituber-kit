@@ -16,9 +16,7 @@ export async function generateGameCommentary(
 ): Promise<{ text: string; emotion: EmotionType } | null> {
   const ss = settingsStore.getState()
   const characterPrompt = ss.systemPrompt || ''
-  const commentaryPrompt =
-    ((ss as Record<string, unknown>).gameCommentaryPromptTemplate as string) ||
-    ''
+  const commentaryPrompt = ss.gameCommentaryPromptTemplate || ''
 
   const systemPrompt = characterPrompt + '\n\n' + commentaryPrompt
 
