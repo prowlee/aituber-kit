@@ -25,6 +25,16 @@ import {
 } from '@/utils/textProcessing'
 
 const speakQueue = SpeakQueue.getInstance()
+const SYNTHESIS_START_GAP_MS = 250
+
+type PendingSpeakResult = {
+  sessionId: string
+  audioBuffer: ArrayBuffer | null
+  talk: Talk
+  isNeedDecode: boolean
+  onComplete?: () => void
+  tokenAtStart: number
+}
 
 export function preprocessMessage(
   message: string,
@@ -186,8 +196,50 @@ async function synthesizeVoice(
 }
 
 const createSpeakCharacter = () => {
-  let lastTime = 0
-  let prevFetchPromise: Promise<unknown> = Promise.resolve()
+  let lastSynthesisStartAt = 0
+  let currentSessionId: string | null = null
+  let nextSynthesisOrder = 0
+  let nextEnqueueOrder = 0
+  const pendingResults = new Map<number, PendingSpeakResult>()
+
+  const resetPendingResults = (sessionId: string) => {
+    pendingResults.forEach((result) => result.onComplete?.())
+    pendingResults.clear()
+    currentSessionId = sessionId
+    nextSynthesisOrder = 0
+    nextEnqueueOrder = 0
+    lastSynthesisStartAt = 0
+  }
+
+  const flushPendingResults = () => {
+    while (pendingResults.has(nextEnqueueOrder)) {
+      const result = pendingResults.get(nextEnqueueOrder)
+      pendingResults.delete(nextEnqueueOrder)
+      nextEnqueueOrder += 1
+
+      if (!result) {
+        continue
+      }
+
+      if (!result.audioBuffer) {
+        result.onComplete?.()
+        continue
+      }
+
+      if (result.tokenAtStart !== SpeakQueue.currentStopToken) {
+        result.onComplete?.()
+        continue
+      }
+
+      void speakQueue.addTask({
+        sessionId: result.sessionId,
+        audioBuffer: result.audioBuffer,
+        talk: result.talk,
+        isNeedDecode: result.isNeedDecode,
+        onComplete: result.onComplete,
+      })
+    }
+  }
 
   return (
     sessionId: string,
@@ -202,6 +254,9 @@ const createSpeakCharacter = () => {
     const initialToken = SpeakQueue.currentStopToken
 
     speakQueue.checkSessionId(sessionId)
+    if (currentSessionId !== sessionId) {
+      resetPendingResults(sessionId)
+    }
 
     // 停止後なら即完了
     if (SpeakQueue.currentStopToken !== initialToken) {
@@ -227,12 +282,26 @@ const createSpeakCharacter = () => {
       talk.message = ''
     }
 
-    let isNeedDecode = true
+    const guardedOnComplete = () => {
+      if (onComplete && !called) {
+        called = true
+        onComplete()
+      }
+    }
 
-    const processAndSynthesizePromise = prevFetchPromise.then(async () => {
-      const now = Date.now()
-      if (now - lastTime < 1000) {
-        await wait(1000 - (now - lastTime))
+    let isNeedDecode = true
+    const synthesisOrder = nextSynthesisOrder++
+
+    const processAndSynthesizePromise = (async () => {
+      // TTS APIの瞬間的な連打は避けつつ、合成自体は並列で進める。
+      const scheduledStartAt = Math.max(
+        Date.now(),
+        lastSynthesisStartAt + SYNTHESIS_START_GAP_MS
+      )
+      lastSynthesisStartAt = scheduledStartAt
+      const waitTime = scheduledStartAt - Date.now()
+      if (waitTime > 0) {
+        await wait(waitTime)
       }
 
       // ボタン停止でキャンセルされた場合はここで終了
@@ -268,63 +337,50 @@ const createSpeakCharacter = () => {
       } catch (error) {
         handleTTSError(error, ss.selectVoice)
         return null
-      } finally {
-        lastTime = Date.now()
       }
 
-      // 合成開始前に取得した initialToken をそのまま保持する
-      const tokenAtStart = initialToken
-      return { buffer, isNeedDecode, tokenAtStart }
-    })
-
-    prevFetchPromise = processAndSynthesizePromise.catch((err) => {
-      console.error('Speak chain error (swallowed):', err)
-      // 後続処理を止めないために resolve で返す
-      return null
-    })
+      return {
+        sessionId,
+        audioBuffer: buffer,
+        talk,
+        isNeedDecode,
+        onComplete: guardedOnComplete,
+        tokenAtStart: initialToken,
+      }
+    })()
 
     processAndSynthesizePromise
       .then((result) => {
-        if (!result || !result.buffer) {
-          if (onComplete && !called) {
-            called = true
-            onComplete()
-          }
+        if (currentSessionId !== sessionId) {
+          guardedOnComplete()
           return
         }
 
-        // Stop ボタン後に生成された音声でないか確認
-        if (result.tokenAtStart !== SpeakQueue.currentStopToken) {
-          // 生成中に Stop された => 破棄
-          if (onComplete && !called) {
-            called = true
-            onComplete()
-          }
-          return
-        }
-
-        // Wrap the onComplete passed to speakQueue.addTask
-        const guardedOnComplete = () => {
-          if (onComplete && !called) {
-            called = true
-            onComplete()
-          }
-        }
-
-        speakQueue.addTask({
+        pendingResults.set(synthesisOrder, {
           sessionId,
-          audioBuffer: result.buffer,
+          audioBuffer: result?.audioBuffer ?? null,
           talk,
-          isNeedDecode: result.isNeedDecode,
-          onComplete: guardedOnComplete, // Pass the guarded function
+          isNeedDecode: result?.isNeedDecode ?? isNeedDecode,
+          onComplete: guardedOnComplete,
+          tokenAtStart: result?.tokenAtStart ?? initialToken,
         })
+        flushPendingResults()
       })
       .catch((error) => {
         console.error('Error in processAndSynthesizePromise chain:', error)
-        if (onComplete && !called) {
-          called = true
-          onComplete()
+        if (currentSessionId !== sessionId) {
+          guardedOnComplete()
+          return
         }
+        pendingResults.set(synthesisOrder, {
+          sessionId,
+          audioBuffer: null,
+          talk,
+          isNeedDecode,
+          onComplete: guardedOnComplete,
+          tokenAtStart: initialToken,
+        })
+        flushPendingResults()
       })
   }
 }

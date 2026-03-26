@@ -203,7 +203,10 @@ export class SpeakQueue {
     return isComplete
   }
 
-  clearQueue() {
+  clearQueue(shouldCallOnComplete = false) {
+    if (shouldCallOnComplete) {
+      this.queue.forEach((task) => task.onComplete?.())
+    }
     this.queue = []
   }
 
@@ -225,7 +228,7 @@ export class SpeakQueue {
     // 通常時にセッションIDが変わった場合はキューをリセット
     if (this.currentSessionId !== sessionId) {
       this.currentSessionId = sessionId
-      this.clearQueue()
+      this.clearQueue(true)
       homeStore.setState({ isSpeaking: true })
     }
   }

@@ -71,6 +71,14 @@ function createTask(
   }
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 const mockModelSpeak = jest.fn().mockResolvedValue(undefined)
 const mockModelStopSpeaking = jest.fn()
 const mockModelPlayEmotion = jest.fn().mockResolvedValue(undefined)
@@ -250,6 +258,28 @@ describe('SpeakQueue', () => {
       // Task with session1 should be discarded
       await queue.addTask(createTask('session1'))
       expect(mockModelSpeak).not.toHaveBeenCalled()
+    })
+
+    it('should call onComplete for queued tasks discarded by session change', async () => {
+      const queue = SpeakQueue.getInstance()
+      const speakDeferred = createDeferred<void>()
+      const queuedOnComplete = jest.fn()
+
+      mockModelSpeak.mockReturnValueOnce(speakDeferred.promise)
+      queue.checkSessionId('session1')
+
+      const firstTaskPromise = queue.addTask(createTask('session1'))
+      await Promise.resolve()
+      await queue.addTask(
+        createTask('session1', { onComplete: queuedOnComplete })
+      )
+
+      queue.checkSessionId('session2')
+
+      expect(queuedOnComplete).toHaveBeenCalledTimes(1)
+
+      speakDeferred.resolve()
+      await firstTaskPromise
     })
 
     it('should reset stopped state when stopped', async () => {
