@@ -16,6 +16,7 @@ import 'fake-indexeddb/auto'
 import {
   saveMessageToMemory,
   searchMemoryContext,
+  searchMemoryContextWithTimeout,
   initializeMemoryService,
 } from '@/features/memory/memoryStoreSync'
 import {
@@ -334,6 +335,23 @@ describe('MemoryStoreSync', () => {
       })
 
       await expect(searchMemoryContext('test query')).resolves.not.toThrow()
+    })
+
+    it('should return empty string when search exceeds timeout', async () => {
+      const service = getMemoryService()
+      await service.initialize()
+
+      jest.useFakeTimers()
+      try {
+        mockFetch.mockImplementationOnce(() => new Promise(() => {}))
+
+        const contextPromise = searchMemoryContextWithTimeout('test query', 50)
+
+        await jest.advanceTimersByTimeAsync(50)
+        await expect(contextPromise).resolves.toBe('')
+      } finally {
+        jest.useRealTimers()
+      }
     })
   })
 
