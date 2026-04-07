@@ -55,7 +55,6 @@ export const MessageInput = ({
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const imageDisplayPosition = settingsStore((s) => s.imageDisplayPosition)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const customModel = settingsStore((s) => s.customModel)
   const [rows, setRows] = useState(1)
   const [loadingDots, setLoadingDots] = useState('')
@@ -86,7 +85,6 @@ export const MessageInput = ({
     selectAIService,
     selectAIModel,
     enableMultiModal,
-    multiModalMode,
     customModel
   )
 

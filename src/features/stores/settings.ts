@@ -256,7 +256,6 @@ interface General {
   initialSpeechTimeout: number
   chatLogWidth: number
   imageDisplayPosition: 'input' | 'side' | 'icon'
-  multiModalMode: 'always' | 'never'
   multiModalAiDecisionPrompt: string
   enableMultiModal: boolean
   colorTheme: 'default' | 'cool' | 'mono' | 'ocean' | 'forest' | 'sunset'
@@ -606,13 +605,6 @@ const getInitialValuesFromEnv = (): SettingsState => ({
       ? (envPosition as 'input' | 'side' | 'icon')
       : 'input'
   })(),
-  multiModalMode: (() => {
-    const validModes = ['always', 'never'] as const
-    const envMode = process.env.NEXT_PUBLIC_MULTIMODAL_MODE
-    return validModes.includes(envMode as any)
-      ? (envMode as 'always' | 'never')
-      : 'always'
-  })(),
   multiModalAiDecisionPrompt:
     process.env.NEXT_PUBLIC_MULTIMODAL_AI_DECISION_PROMPT || '',
   enableMultiModal: process.env.NEXT_PUBLIC_ENABLE_MULTIMODAL !== 'false',
@@ -828,8 +820,8 @@ const getInitialValuesFromEnv = (): SettingsState => ({
   surprisedMotionGroup: process.env.NEXT_PUBLIC_SURPRISED_MOTION_GROUP || '',
 })
 
-type PersistedSettingsState = Omit<Partial<SettingsState>, 'multiModalMode'> & {
-  multiModalMode?: SettingsState['multiModalMode'] | 'ai-decide'
+type PersistedSettingsState = Partial<SettingsState> & {
+  multiModalMode?: 'always' | 'never' | 'ai-decide'
   presenceGreetingMessage?: string
   presenceDepartureMessage?: string
 }
@@ -866,8 +858,10 @@ const migratePersistedSettings = (
     delete migrated.presenceDepartureMessage
   }
 
-  if (migrated.multiModalMode === 'ai-decide') {
-    migrated.multiModalMode = 'always'
+  // multiModalMode → enableMultiModal へのマイグレーション
+  if (migrated.multiModalMode !== undefined) {
+    migrated.enableMultiModal = migrated.multiModalMode !== 'never'
+    delete migrated.multiModalMode
   }
 
   // Game commentary migration: ensure defaults for new fields
@@ -1083,7 +1077,6 @@ const settingsStore = create<SettingsState>()(
         initialSpeechTimeout: state.initialSpeechTimeout,
         chatLogWidth: state.chatLogWidth,
         imageDisplayPosition: state.imageDisplayPosition,
-        multiModalMode: state.multiModalMode,
         multiModalAiDecisionPrompt: state.multiModalAiDecisionPrompt,
         enableMultiModal: state.enableMultiModal,
         colorTheme: state.colorTheme,

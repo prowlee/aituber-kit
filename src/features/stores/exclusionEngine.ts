@@ -102,7 +102,6 @@ export function computeDisabledConditions(
     state.selectAIService,
     state.selectAIModel,
     state.enableMultiModal,
-    state.multiModalMode,
     state.customModel
   )
 

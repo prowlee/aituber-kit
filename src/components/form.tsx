@@ -18,7 +18,6 @@ export const Form = () => {
   const slideVisible = menuStore((s) => s.slideVisible)
   const slidePlaying = slideStore((s) => s.isPlaying)
   const chatProcessingCount = homeStore((s) => s.chatProcessingCount)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const selectAIService = settingsStore((s) => s.selectAIService)
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
@@ -48,16 +47,12 @@ export const Form = () => {
         selectAIService as AIService,
         selectAIModel,
         enableMultiModal,
-        multiModalMode,
         customModel
       )
 
-      // モードに基づいて画像キャプチャの必要性を判定
-      let shouldCaptureImage = false
-
-      if (isMultiModalSupported && (webcamStatus || captureStatus)) {
-        shouldCaptureImage = multiModalMode !== 'never'
-      }
+      // マルチモーダル対応かつカメラ/キャプチャが有効なら画像を取得
+      const shouldCaptureImage =
+        isMultiModalSupported && (webcamStatus || captureStatus)
 
       // 画像キャプチャが必要な場合
       if (shouldCaptureImage) {
@@ -80,7 +75,6 @@ export const Form = () => {
       webcamStatus,
       captureStatus,
       setDelayedText,
-      multiModalMode,
       selectAIService,
       selectAIModel,
       enableMultiModal,

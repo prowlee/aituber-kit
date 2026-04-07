@@ -50,7 +50,6 @@ function createMockState(
     showSilenceProgressBar: true,
     continuousMicListeningMode: true,
     useSearchGrounding: false,
-    multiModalMode: 'always',
     enableMultiModal: true,
     customModel: false,
     ...overrides,

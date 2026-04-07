@@ -168,7 +168,7 @@ export const exclusionRules: ExclusionRule[] = [
     apply: () => ({
       conversationContinuityMode: false,
       slideMode: false,
-      multiModalMode: 'never' as const,
+      enableMultiModal: false,
     }),
     crossStoreEffects: () => [
       { store: 'menu', state: { showWebcam: false } },

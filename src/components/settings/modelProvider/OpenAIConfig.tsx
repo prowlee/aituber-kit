@@ -34,7 +34,6 @@ interface OpenAIConfigProps {
   selectAIModel: string
   customModel: boolean
   enableMultiModal: boolean
-  multiModalMode: string
   updateMultiModalModeForModel: (service: AIService, model: string) => void
 }
 
@@ -49,7 +48,6 @@ export const OpenAIConfig = ({
   selectAIModel,
   customModel,
   enableMultiModal,
-  multiModalMode,
   updateMultiModalModeForModel,
 }: OpenAIConfigProps) => {
   const { t } = useTranslation()

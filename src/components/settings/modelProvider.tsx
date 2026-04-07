@@ -49,7 +49,6 @@ const ModelProvider = () => {
             selectAIModel={state.selectAIModel}
             customModel={state.customModel}
             enableMultiModal={state.enableMultiModal}
-            multiModalMode={state.multiModalMode}
             updateMultiModalModeForModel={updateMultiModalModeForModel}
           />
         )
@@ -527,30 +526,6 @@ const ModelProvider = () => {
               </>
             )}
 
-          {state.isMultiModalSupported && (
-            <div className="border-t border-gray-300 pt-6 my-6">
-              <div className="my-4 text-xl font-bold">
-                {t('MultiModalMode')}
-              </div>
-              <div className="my-2 text-sm whitespace-pre-wrap">
-                {t('MultiModalModeDescription')}
-              </div>
-              <div className="my-2">
-                <select
-                  className="px-4 py-2 w-full sm:w-col-span-2 bg-white hover:bg-white-hover rounded-lg"
-                  value={state.multiModalMode}
-                  onChange={(e) =>
-                    settingsStore.setState({
-                      multiModalMode: e.target.value as 'always' | 'never',
-                    })
-                  }
-                >
-                  <option value="always">{t('MultiModalModeAlways')}</option>
-                  <option value="never">{t('MultiModalModeNever')}</option>
-                </select>
-              </div>
-            </div>
-          )}
 
           {(state.realtimeAPIMode || state.audioMode) && (
             <div className="my-6 p-4 bg-white rounded-lg text-sm ">

@@ -830,7 +830,6 @@ export const handleSendChatFn =
           ss.selectAIService,
           ss.selectAIModel,
           ss.enableMultiModal,
-          ss.multiModalMode,
           ss.customModel
         )
       ) {
@@ -846,9 +845,9 @@ export const handleSendChatFn =
         return
       }
 
-      // マルチモーダルモードに基づいてメッセージコンテンツを構築
+      // 画像が添付されている場合はマルチモーダルメッセージを構築
       let userMessageContent: Message['content'] = newMessage
-      if (modalImage && ss.multiModalMode !== 'never') {
+      if (modalImage) {
         userMessageContent = [
           { type: 'text' as const, text: newMessage },
           { type: 'image' as const, image: modalImage },

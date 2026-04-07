@@ -43,7 +43,6 @@ export const Menu = () => {
   const selectAIService = settingsStore((s) => s.selectAIService)
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const customModel = settingsStore((s) => s.customModel)
   const youtubeMode = settingsStore((s) => s.youtubeMode)
   const youtubePlaying = settingsStore((s) => s.youtubePlaying)
@@ -296,7 +295,6 @@ export const Menu = () => {
                 selectAIService as AIService,
                 selectAIModel,
                 enableMultiModal,
-                multiModalMode,
                 customModel
               ) && (
                 <div className="order-4">

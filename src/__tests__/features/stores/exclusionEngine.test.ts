@@ -30,7 +30,6 @@ function createBaseState(
     showSilenceProgressBar: true,
     continuousMicListeningMode: true,
     useSearchGrounding: false,
-    multiModalMode: 'always',
     enableMultiModal: true,
     customModel: false,
     idleModeEnabled: false,
@@ -192,8 +191,7 @@ describe('排他エンジン (computeExclusions)', () => {
         selectAIService: 'openai',
         slideMode: true,
         conversationContinuityMode: true,
-        multiModalMode: 'always',
-      })
+          })
       // difyはマルチモーダル非対応
       const incoming = { selectAIService: 'dify' as const }
       const { corrections, crossStoreEffects } = computeExclusions(
@@ -203,7 +201,7 @@ describe('排他エンジン (computeExclusions)', () => {
 
       expect(corrections.conversationContinuityMode).toBe(false)
       expect(corrections.slideMode).toBe(false)
-      expect(corrections.multiModalMode).toBe('never')
+      expect(corrections.enableMultiModal).toBe(false)
       expect(crossStoreEffects).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ store: 'menu' }),
@@ -638,8 +636,12 @@ describe('disabled条件 (computeDisabledConditions)', () => {
     expect(conditions.conversationContinuityMode).toBe(true)
   })
 
-  it('multiModalMode=never で slideMode, conversationContinuityMode が disabled', () => {
-    const state = createBaseState({ multiModalMode: 'never' })
+  it('マルチモーダル非対応モデルで slideMode, conversationContinuityMode が disabled', () => {
+    const state = createBaseState({
+      selectAIService: 'openai',
+      selectAIModel: 'o1-mini',
+      enableMultiModal: false,
+    })
     const conditions = computeDisabledConditions(state)
 
     expect(conditions.slideMode).toBe(true)

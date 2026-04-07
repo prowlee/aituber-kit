@@ -15,11 +15,11 @@ export const useAIServiceHandlers = () => {
 
       if (!isMultiModalModel(service, model)) {
         settingsStore.setState({
-          multiModalMode: 'never',
+          enableMultiModal: false,
         })
-      } else if (currentState.multiModalMode === 'never') {
+      } else if (!currentState.enableMultiModal) {
         settingsStore.setState({
-          multiModalMode: 'always',
+          enableMultiModal: true,
         })
       }
     },
@@ -34,7 +34,7 @@ export const useAIServiceHandlers = () => {
     settingsStore.setState({
       selectAIService: newService,
       selectAIModel: selectedModel,
-      multiModalMode: currentState.multiModalMode,
+      enableMultiModal: currentState.enableMultiModal,
     })
   }, [])
 
