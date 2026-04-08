@@ -4,6 +4,12 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAudioProcessing } from '@/hooks/useAudioProcessing'
 
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}))
+
 // Store original values for cleanup
 const originalAudioContext = (window as any).AudioContext
 const originalWebkitAudioContext = (window as any).webkitAudioContext

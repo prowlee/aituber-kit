@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import Voice from '@/components/settings/voice'
 import settingsStore from '@/features/stores/settings'
 
@@ -56,11 +56,11 @@ jest.mock('@/features/constants/aiModels', () => ({
 }))
 
 // Mock global fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve([]),
-  })
+global.fetch = jest.fn(
+  () =>
+    new Promise(() => {
+      // Keep the speaker request pending in tests that do not assert on its result.
+    })
 ) as jest.Mock
 
 const mockSettingsStore = settingsStore as jest.MockedFunction<
