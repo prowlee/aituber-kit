@@ -20,6 +20,16 @@ let homeSubscriber:
   | ((state: typeof homeState, prevState: typeof homeState) => void)
   | undefined
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
 jest.mock('@/features/stores/settings', () => {
   const mockFn = jest.fn()
   return {
@@ -82,6 +92,7 @@ function setupSettingsState(overrides: Record<string, unknown> = {}) {
     gameCommentaryPlaying: true,
     gameCommentaryCaptureInterval: 5,
     gameCommentaryContextCount: 5,
+    maxPastMessages: 10,
     gameCommentaryImageQuality: 0.7,
     gameCommentaryResizeWidth: 1024,
     gameCommentaryBackgroundAnalysisEnabled: false,
@@ -102,6 +113,7 @@ function setupSettingsState(overrides: Record<string, unknown> = {}) {
 
 function setupHomeState(overrides: Record<string, unknown> = {}) {
   homeState = {
+    chatProcessing: false,
     chatProcessingCount: 0,
     isSpeaking: false,
     captureStatus: true,
@@ -198,5 +210,101 @@ describe('useGameCommentaryMode', () => {
     await flushAsync()
 
     expect(mockGenerateGameCommentary).toHaveBeenCalledTimes(2)
+  })
+
+  it('cancels an in-flight commentary generation when a user chat arrives during capturing', async () => {
+    const deferred = createDeferred<{
+      text: string
+      emotion: string
+      sceneDescription: string
+    }>()
+    mockGenerateGameCommentary.mockReturnValueOnce(deferred.promise)
+
+    const { result } = renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(result.current.state).toBe('capturing')
+    })
+
+    const prevState = homeState
+    const nextState = {
+      ...homeState,
+      chatLog: [
+        {
+          id: 'user-capturing',
+          role: 'user',
+          content: '割り込みです',
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }
+
+    await act(async () => {
+      homeState = nextState
+      homeSubscriber?.(nextState, prevState)
+      await Promise.resolve()
+    })
+
+    expect(mockStopAll).toHaveBeenCalledTimes(1)
+    expect(result.current.state).toBe('waiting')
+
+    await act(async () => {
+      deferred.resolve({
+        text: '古い実況です。',
+        emotion: 'neutral',
+        sceneDescription: '古いシーン',
+      })
+      await deferred.promise
+      await Promise.resolve()
+    })
+
+    expect(mockSpeakCharacter).not.toHaveBeenCalled()
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(mockGenerateGameCommentary).toHaveBeenCalledTimes(2)
+  })
+
+  it('uses maxPastMessages for recent chat context during commentary generation', async () => {
+    setupSettingsState({ maxPastMessages: 3 })
+    setupHomeState({
+      chatLog: [
+        { id: '1', role: 'user', content: 'm1', timestamp: '2026-01-01' },
+        { id: '2', role: 'assistant', content: 'm2', timestamp: '2026-01-01' },
+        { id: '3', role: 'user', content: 'm3', timestamp: '2026-01-01' },
+        { id: '4', role: 'assistant', content: 'm4', timestamp: '2026-01-01' },
+        { id: '5', role: 'user', content: 'm5', timestamp: '2026-01-01' },
+      ],
+    })
+
+    renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(mockGenerateGameCommentary).toHaveBeenCalledWith(
+      expect.any(Array),
+      'data:image/jpeg;base64,test',
+      [
+        { role: 'user', content: 'm3' },
+        { role: 'assistant', content: 'm4' },
+        { role: 'user', content: 'm5' },
+      ],
+      []
+    )
   })
 })

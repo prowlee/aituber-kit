@@ -22,21 +22,24 @@ export const Form = () => {
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
   const customModel = settingsStore((s) => s.customModel)
+  const gameCommentaryEnabled = settingsStore((s) => s.gameCommentaryEnabled)
+  const gameCommentaryPlaying = settingsStore((s) => s.gameCommentaryPlaying)
   const [delayedText, setDelayedText] = useState('')
   const handleSendChat = handleSendChatFn()
 
   useEffect(() => {
     // テキストと画像がそろったら、チャットを送信
-    if (delayedText && modalImage) {
-      handleSendChat(delayedText)
-      setDelayedText('')
+    if (!delayedText || !modalImage) {
+      return
     }
 
-    // コンポーネントがアンマウントされる際にpending操作をクリーンアップ
+    const timeoutId = window.setTimeout(() => {
+      handleSendChat(delayedText)
+      setDelayedText('')
+    }, 0)
+
     return () => {
-      if (delayedText) {
-        setDelayedText('')
-      }
+      window.clearTimeout(timeoutId)
     }
   }, [modalImage, delayedText, handleSendChat])
 
@@ -51,8 +54,11 @@ export const Form = () => {
       )
 
       // マルチモーダル対応かつカメラ/キャプチャが有効なら画像を取得
+      const isGameCommentaryRunning =
+        gameCommentaryEnabled && gameCommentaryPlaying
       const shouldCaptureImage =
-        isMultiModalSupported && (webcamStatus || captureStatus)
+        isMultiModalSupported &&
+        (webcamStatus || (captureStatus && !isGameCommentaryRunning))
 
       // 画像キャプチャが必要な場合
       if (shouldCaptureImage) {
@@ -79,6 +85,8 @@ export const Form = () => {
       selectAIModel,
       enableMultiModal,
       customModel,
+      gameCommentaryEnabled,
+      gameCommentaryPlaying,
     ]
   )
 

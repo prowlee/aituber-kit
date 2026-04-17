@@ -100,6 +100,7 @@ export function useGameCommentaryMode({
   isRunningRef.current = isRunning
   const stateRef = useRef<GameCommentaryState>(state)
   stateRef.current = state
+  const commentaryRequestTokenRef = useRef(0)
   const captureIntervalRef = useRef(gameCommentaryCaptureInterval)
   captureIntervalRef.current = gameCommentaryCaptureInterval
   const backgroundAnalysisGenerationRef = useRef(0)
@@ -131,10 +132,16 @@ export function useGameCommentaryMode({
   // ----- 発話条件判定 -----
   const canSpeak = useCallback((): boolean => {
     const hs = homeStore.getState()
+    if (hs.chatProcessing) return false
     if (hs.chatProcessingCount > 0) return false
     if (hs.isSpeaking) return false
     if (!hs.captureStatus) return false
     return true
+  }, [])
+
+  const invalidateActiveCommentary = useCallback(() => {
+    commentaryRequestTokenRef.current += 1
+    isProcessingRef.current = false
   }, [])
 
   // ----- ring bufferに追加 -----
@@ -298,6 +305,8 @@ export function useGameCommentaryMode({
 
     isProcessingRef.current = true
     setState('capturing')
+    const requestToken = commentaryRequestTokenRef.current + 1
+    commentaryRequestTokenRef.current = requestToken
 
     // キャプチャ取得
     const imageData = captureService.captureFrame(
@@ -319,10 +328,11 @@ export function useGameCommentaryMode({
       resetBackgroundSceneAnalyses()
 
       // chatLogから直近メッセージを取得（視聴者コメントとの文脈共有）
+      const maxPastMessages = settingsStore.getState().maxPastMessages
       const chatLog = homeStore.getState().chatLog
       const recentMessages = chatLog
         .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .slice(-5)
+        .slice(maxPastMessages > 0 ? -maxPastMessages : 0)
         .map((m) => ({
           role: m.role,
           content: typeof m.content === 'string' ? m.content : '',
@@ -336,6 +346,20 @@ export function useGameCommentaryMode({
       )
 
       if (!result) {
+        if (requestToken !== commentaryRequestTokenRef.current) {
+          return
+        }
+        isProcessingRef.current = false
+        setState('waiting')
+        scheduleNext()
+        return
+      }
+
+      if (requestToken !== commentaryRequestTokenRef.current) {
+        return
+      }
+
+      if (!canSpeak()) {
         isProcessingRef.current = false
         setState('waiting')
         scheduleNext()
@@ -410,12 +434,13 @@ export function useGameCommentaryMode({
         scheduleNext()
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     canSpeak,
     gameCommentaryResizeWidth,
     gameCommentaryImageQuality,
     addToHistory,
+    resetBackgroundSceneAnalyses,
+    scheduleNext,
   ])
 
   // ----- タイマーリセット -----
@@ -432,12 +457,17 @@ export function useGameCommentaryMode({
     clearTimers()
     clearBackgroundAnalysisTimer()
     resetBackgroundSceneAnalyses()
-    isProcessingRef.current = false
+    invalidateActiveCommentary()
     SpeakQueue.stopAll()
     setState('waiting')
     setSecondsUntilNextCapture(captureIntervalRef.current)
     callbackRefs.current.onCommentaryInterrupted?.()
-  }, [clearBackgroundAnalysisTimer, clearTimers, resetBackgroundSceneAnalyses])
+  }, [
+    clearBackgroundAnalysisTimer,
+    clearTimers,
+    invalidateActiveCommentary,
+    resetBackgroundSceneAnalyses,
+  ])
 
   // ----- 有効/無効の監視 -----
   useEffect(() => {
@@ -452,7 +482,7 @@ export function useGameCommentaryMode({
       SpeakQueue.stopAll()
       commentaryHistoryRef.current = []
       resetBackgroundSceneAnalyses()
-      isProcessingRef.current = false
+      invalidateActiveCommentary()
     }
 
     return () => {
@@ -463,6 +493,7 @@ export function useGameCommentaryMode({
     isRunning,
     clearBackgroundAnalysisTimer,
     clearTimers,
+    invalidateActiveCommentary,
     resetBackgroundSceneAnalyses,
     scheduleNext,
   ])
@@ -499,8 +530,11 @@ export function useGameCommentaryMode({
         // ユーザー入力があったらタイマーリセット
         const latestMsg = hState.chatLog[hState.chatLog.length - 1]
         if (latestMsg?.role === 'user') {
-          // 発話中の場合は停止
-          if (state === 'speaking') {
+          // 発話中/生成中の場合は停止
+          if (
+            stateRef.current === 'speaking' ||
+            stateRef.current === 'capturing'
+          ) {
             stopCommentary()
           }
 
@@ -510,7 +544,7 @@ export function useGameCommentaryMode({
     })
 
     return unsubscribe
-  }, [isRunning, state, resetTimer, stopCommentary])
+  }, [isRunning, resetTimer, stopCommentary])
 
   return {
     isActive: isRunning && state !== 'disabled',
