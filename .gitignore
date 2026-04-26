@@ -89,6 +89,7 @@ aituber-kit-lp/*
 aituber-kit-docs/*
 promo-video/*
 .claude/skills/remotion-*
+.agents/skills/remotion-*
 
 # Local caches
 .mypy_cache
