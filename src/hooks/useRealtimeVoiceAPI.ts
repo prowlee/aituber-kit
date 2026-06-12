@@ -35,10 +35,10 @@ export function useRealtimeVoiceAPI(
 
   // ----- オーディオ処理フックを使用 -----
   const {
-    audioContext,
     checkMicrophonePermission,
     startRecording,
     stopRecording,
+    decodeAudioData,
   } = useAudioProcessing()
 
   // ----- オーディオバッファ用 -----
@@ -202,16 +202,20 @@ export function useRealtimeVoiceAPI(
     )
 
     // 音声データが存在する場合のみ処理
-    if (audioBlob && audioContext) {
+    if (audioBlob) {
       try {
         console.log('🔊 音声データを処理します')
         const arrayBuffer = await audioBlob.arrayBuffer()
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-        const processedData = processAudio(audioBuffer)
-        audioBufferRef.current = processedData
+        const audioBuffer = await decodeAudioData(arrayBuffer)
+        if (audioBuffer) {
+          const processedData = processAudio(audioBuffer)
+          audioBufferRef.current = processedData
 
-        // 音声データ送信
-        sendAudioBuffer()
+          // 音声データ送信
+          sendAudioBuffer()
+        } else {
+          console.log('⚠️ 音声データのデコードに失敗しました')
+        }
       } catch (error) {
         console.error('🔴 音声データ処理エラー:', error)
       }
@@ -238,7 +242,7 @@ export function useRealtimeVoiceAPI(
     clearSilenceDetection,
     clearInitialSpeechCheckTimer,
     recognition,
-    audioContext,
+    decodeAudioData,
     stopRecording,
     sendAudioBuffer,
     isSpeechEnded,
@@ -255,7 +259,7 @@ export function useRealtimeVoiceAPI(
     const hasPermission = await checkMicrophonePermission()
     if (!hasPermission) return
 
-    if (!recognition || !audioContext) return
+    if (!recognition) return
 
     // 既に認識が開始されている場合は、一度停止してから再開する
     if (isListeningRef.current) {
@@ -317,7 +321,7 @@ export function useRealtimeVoiceAPI(
         tag: 'speech-recognition-error',
       })
     }
-  }, [recognition, audioContext, checkMicrophonePermission, startRecording, t])
+  }, [recognition, checkMicrophonePermission, startRecording, t])
 
   // ----- 音声認識トグル処理 -----
   const toggleListening = useCallback(() => {

@@ -11,20 +11,31 @@ type AudioContextType = typeof AudioContext
  */
 export function useAudioProcessing() {
   const { t } = useTranslation()
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
 
-  // AudioContextの初期化（マウント時のみ）
-  useEffect(() => {
-    const AudioContextClass = (window.AudioContext ||
-      (window as any).webkitAudioContext) as AudioContextType
-    const context = new AudioContextClass()
-    setAudioContext(context)
+  // AudioContextの遅延初期化（初回利用時に生成）
+  // マウント時に生成すると、オーディオデバイスが初期化できない環境で
+  // new AudioContext() がネイティブ層でハングしメインスレッドをブロックするため、
+  // ユーザー操作起点の処理（decodeAudioData等）で必要になるまで生成しない
+  const getAudioContext = useCallback((): AudioContext | null => {
+    if (!audioContextRef.current) {
+      const AudioContextClass = (window.AudioContext ||
+        (window as any).webkitAudioContext) as AudioContextType
+      if (!AudioContextClass) return null
+      audioContextRef.current = new AudioContextClass()
+    }
+    return audioContextRef.current
+  }, [])
 
-    // クリーンアップ関数（アンマウント時のみ）
+  // AudioContextのクリーンアップ（アンマウント時のみ）
+  useEffect(() => {
     return () => {
-      context.close().catch(console.error)
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(console.error)
+        audioContextRef.current = null
+      }
     }
   }, []) // 空の依存配列でマウント時のみ実行
 
@@ -263,6 +274,7 @@ export function useAudioProcessing() {
    */
   const decodeAudioData = useCallback(
     async (arrayBuffer: ArrayBuffer): Promise<AudioBuffer | null> => {
+      const audioContext = getAudioContext()
       if (!audioContext) return null
 
       try {
@@ -272,11 +284,11 @@ export function useAudioProcessing() {
         return null
       }
     },
-    [audioContext]
+    [getAudioContext]
   )
 
   return {
-    audioContext,
+    getAudioContext,
     mediaRecorder,
     audioChunksRef,
     checkMicrophonePermission,

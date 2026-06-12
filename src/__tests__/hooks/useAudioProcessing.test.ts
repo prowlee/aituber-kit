@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useAudioProcessing } from '@/hooks/useAudioProcessing'
 
 jest.mock('react-i18next', () => ({
@@ -99,75 +99,79 @@ describe('useAudioProcessing', () => {
     MockAudioContext.mockClear()
   })
 
-  describe('AudioContext初期化の分離 (Requirement 2)', () => {
-    it('マウント時にAudioContextが1回だけ初期化される', async () => {
-      const { result, unmount } = renderHook(() => useAudioProcessing())
+  describe('AudioContextの遅延初期化', () => {
+    it('マウント時にはAudioContextが生成されない', () => {
+      const { unmount } = renderHook(() => useAudioProcessing())
 
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
-      })
-
-      // AudioContextが1回だけ初期化されていることを確認
-      expect(MockAudioContext).toHaveBeenCalledTimes(1)
+      // マウントしただけではAudioContextは生成されない
+      expect(MockAudioContext).not.toHaveBeenCalled()
 
       unmount()
     })
 
-    it('mediaRecorderの状態が変化してもAudioContextは再作成されない', async () => {
+    it('getAudioContextの初回呼び出し時に1回だけ生成され、以降は再利用される', () => {
       const { result, unmount } = renderHook(() => useAudioProcessing())
 
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
+      const first = result.current.getAudioContext()
+      const second = result.current.getAudioContext()
+
+      expect(MockAudioContext).toHaveBeenCalledTimes(1)
+      expect(first).toBe(second)
+      expect(first).toBe(mockAudioContextInstance)
+
+      unmount()
+    })
+
+    it('decodeAudioDataの呼び出しでAudioContextが遅延生成される', async () => {
+      const { result, unmount } = renderHook(() => useAudioProcessing())
+
+      expect(MockAudioContext).not.toHaveBeenCalled()
+
+      await act(async () => {
+        await result.current.decodeAudioData(new ArrayBuffer(8))
+        await result.current.decodeAudioData(new ArrayBuffer(8))
       })
 
-      const initialCallCount = MockAudioContext.mock.calls.length
-      expect(initialCallCount).toBe(1)
+      // 複数回デコードしてもAudioContextは1回だけ生成される
+      expect(MockAudioContext).toHaveBeenCalledTimes(1)
+      expect(mockDecodeAudioData).toHaveBeenCalledTimes(2)
+
+      unmount()
+    })
+
+    it('startRecordingではAudioContextは生成されない', async () => {
+      const { result, unmount } = renderHook(() => useAudioProcessing())
 
       // 録音を開始してmediaRecorderの状態を変化させる
       await act(async () => {
         await result.current.startRecording()
       })
 
-      // AudioContextが再作成されていないことを確認
-      expect(MockAudioContext).toHaveBeenCalledTimes(1)
+      // 録音だけではAudioContextは不要なので生成されない
+      expect(MockAudioContext).not.toHaveBeenCalled()
 
       unmount()
     })
 
-    it('アンマウント時にAudioContextがクローズされる', async () => {
+    it('生成済みのAudioContextはアンマウント時にクローズされる', async () => {
       const { result, unmount } = renderHook(() => useAudioProcessing())
 
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
+      await act(async () => {
+        await result.current.decodeAudioData(new ArrayBuffer(8))
       })
 
-      // アンマウント
       unmount()
 
       // AudioContextがクローズされたことを確認
       expect(mockAudioContextClose).toHaveBeenCalled()
     })
 
-    it('MediaRecorderのクリーンアップはAudioContext初期化と独立している', async () => {
-      const { result, unmount } = renderHook(() => useAudioProcessing())
-
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
-      })
-
-      // 録音を開始
-      await act(async () => {
-        await result.current.startRecording()
-      })
-
-      // この時点でもAudioContextは1回のみ作成されている
-      expect(MockAudioContext).toHaveBeenCalledTimes(1)
+    it('未生成のままアンマウントしてもcloseは呼ばれない', () => {
+      const { unmount } = renderHook(() => useAudioProcessing())
 
       unmount()
+
+      expect(mockAudioContextClose).not.toHaveBeenCalled()
     })
   })
 
@@ -188,11 +192,6 @@ describe('useAudioProcessing', () => {
 
     it('audio/webm;codecs=opusが優先的に選択される（Chrome/Edge）', async () => {
       const { result } = renderHook(() => useAudioProcessing())
-
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
-      })
 
       // 録音を開始
       await act(async () => {
@@ -218,11 +217,6 @@ describe('useAudioProcessing', () => {
 
       const { result } = renderHook(() => useAudioProcessing())
 
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
-      })
-
       // 録音を開始
       await act(async () => {
         await result.current.startRecording()
@@ -244,11 +238,6 @@ describe('useAudioProcessing', () => {
       )
 
       const { result } = renderHook(() => useAudioProcessing())
-
-      // AudioContextが作成されるまで待機
-      await waitFor(() => {
-        expect(result.current.audioContext).not.toBeNull()
-      })
 
       // 録音を開始
       await act(async () => {
