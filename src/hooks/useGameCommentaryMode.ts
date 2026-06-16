@@ -248,11 +248,7 @@ export function useGameCommentaryMode({
       gameCommentaryImageQuality,
       GAME_COMMENTARY_BACKGROUND_ANALYSIS.IMAGE_QUALITY
     )
-    const imageData = captureService.isAvailable()
-      ? captureService.captureFrame(maxWidth, quality)
-      : null
-
-    if (!imageData) {
+    if (!captureService.isAvailable()) {
       // キャプチャに一度失敗してもループを止めず、発話中は次の解析を予約し続ける
       queueNextBackgroundAnalysisRef.current()
       return
@@ -262,6 +258,9 @@ export function useGameCommentaryMode({
     const generationAtStart = backgroundAnalysisGenerationRef.current
 
     try {
+      const imageData = await captureService.captureFrame(maxWidth, quality)
+      if (!imageData) return
+
       const summary = await analyzeGameCommentaryScene(imageData)
       if (!summary) return
       if (generationAtStart !== backgroundAnalysisGenerationRef.current) return
@@ -361,7 +360,7 @@ export function useGameCommentaryMode({
     commentaryRequestTokenRef.current = requestToken
 
     // キャプチャ取得
-    const imageData = captureService.captureFrame(
+    const imageData = await captureService.captureFrame(
       gameCommentaryResizeWidth,
       gameCommentaryImageQuality
     )
