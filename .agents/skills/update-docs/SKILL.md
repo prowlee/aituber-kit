@@ -194,7 +194,7 @@ done
 1. `npm run dev -- --port {空きポート}` でローカルアプリを起動する
 2. Playwright等で対象画面を開き、必要ならlocalStorageやテスト用APIモックで目的の状態を作る
 3. 既存画像に合わせて原則 `1280x720` で撮影する
-4. PNGで撮影した場合は `cwebp`、ImageMagick、sharp等でWebPに変換する
+4. PNGで撮影した場合はWebPに変換する。まず `cwebp`（公式ツールで単純・高速）を使い、利用できない場合は Node.js 環境で扱いやすい `sharp`、最後に汎用的な ImageMagick の順でフォールバックする
 5. `view_image` や画像ビューアで視認性・トリミング・文字の見切れを確認する
 6. `npm run docs:build` で画像参照とページ生成を検証する
 

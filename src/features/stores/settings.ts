@@ -20,6 +20,9 @@ import {
 import {
   GameCommentarySettings,
   DEFAULT_GAME_COMMENTARY_CONFIG,
+  clampBackgroundAnalysisInterval,
+  clampCaptureInterval,
+  clampContextCount,
 } from '@/features/gameCommentary/gameCommentaryTypes'
 import {
   AIService,
@@ -792,13 +795,17 @@ const getInitialValuesFromEnv = (): SettingsState => ({
     process.env.NEXT_PUBLIC_GAME_COMMENTARY_ENABLED === 'true' ||
     DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryEnabled,
   gameCommentaryPlaying: DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryPlaying,
-  gameCommentaryCaptureInterval: parseEnvInt(
-    process.env.NEXT_PUBLIC_GAME_COMMENTARY_CAPTURE_INTERVAL,
-    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryCaptureInterval
+  gameCommentaryCaptureInterval: clampCaptureInterval(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_CAPTURE_INTERVAL,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryCaptureInterval
+    )
   ),
-  gameCommentaryContextCount: parseEnvInt(
-    process.env.NEXT_PUBLIC_GAME_COMMENTARY_CONTEXT_COUNT,
-    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryContextCount
+  gameCommentaryContextCount: clampContextCount(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_CONTEXT_COUNT,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryContextCount
+    )
   ),
   gameCommentaryPromptTemplate:
     process.env.NEXT_PUBLIC_GAME_COMMENTARY_PROMPT_TEMPLATE ||
@@ -821,9 +828,11 @@ const getInitialValuesFromEnv = (): SettingsState => ({
     process.env.NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_ENABLED ===
       'true' ||
     DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisEnabled,
-  gameCommentaryBackgroundAnalysisInterval: parseEnvInt(
-    process.env.NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_INTERVAL,
-    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisInterval
+  gameCommentaryBackgroundAnalysisInterval: clampBackgroundAnalysisInterval(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_INTERVAL,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisInterval
+    )
   ),
 
   // Live2D settings

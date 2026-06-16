@@ -40,33 +40,7 @@ class CaptureService {
     maxWidth?: number,
     quality?: number
   ): Promise<string | null> {
-    const raw = this.captureFrameFn?.(maxWidth, quality) ?? null
-    if (!raw) return null
-    if (!maxWidth || maxWidth <= 0) return raw
-
-    try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image()
-        image.onload = () => resolve(image)
-        image.onerror = reject
-        image.src = raw
-      })
-
-      if (img.width <= maxWidth) return raw
-
-      const scale = maxWidth / img.width
-      const canvas = document.createElement('canvas')
-      canvas.width = maxWidth
-      canvas.height = Math.round(img.height * scale)
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return raw
-
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      return canvas.toDataURL('image/jpeg', quality ?? 0.7)
-    } catch {
-      return raw
-    }
+    return this.captureFrameFn?.(maxWidth, quality) ?? null
   }
 
   /**
