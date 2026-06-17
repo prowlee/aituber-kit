@@ -84,22 +84,25 @@ export const VideoDisplay = forwardRef<HTMLDivElement, VideoDisplayProps>(
 
     // Handle background video sync
     useEffect(() => {
+      const backgroundVideo = backgroundVideoRef.current
       if (showBackgroundVideo && videoRef.current?.srcObject) {
-        if (backgroundVideoRef.current) {
-          backgroundVideoRef.current.srcObject = videoRef.current.srcObject
+        if (backgroundVideo) {
+          backgroundVideo.srcObject = videoRef.current.srcObject
         }
       } else if (!showBackgroundVideo) {
-        if (backgroundVideoRef.current) {
-          backgroundVideoRef.current.srcObject = null
+        if (backgroundVideo) {
+          backgroundVideo.srcObject = null
         }
       }
 
       return () => {
-        if (backgroundVideoRef.current) {
-          backgroundVideoRef.current.srcObject = null
+        if (backgroundVideo) {
+          backgroundVideo.srcObject = null
         }
       }
-    }, [showBackgroundVideo, videoRef])
+      // videoRef is stable here; mediaStream changes are synchronized by the next effect.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showBackgroundVideo])
 
     // Handle media stream updates
     useEffect(() => {

@@ -20,9 +20,7 @@ async function disableFullscreenPrompt(page: Page) {
 }
 
 async function clickElement(page: Page, testId: string) {
-  await page.getByTestId(testId).evaluate((element) => {
-    ;(element as HTMLElement).click()
-  })
+  await page.getByTestId(testId).click()
 }
 
 test.beforeEach(async ({ page }) => {
@@ -86,19 +84,19 @@ test('can configure kiosk mode and enforce browser input restrictions', async ({
     .poll(async () => (await messageInput.inputValue()).length)
     .toBeLessThanOrEqual(50)
 
-  const aiRequests: string[] = []
-  page.on('request', (request) => {
-    const url = new URL(request.url())
-    if (url.pathname.startsWith('/api/ai/')) {
-      aiRequests.push(url.pathname)
-    }
-  })
+  const unexpectedAIRequest = page
+    .waitForRequest(
+      (request) => new URL(request.url()).pathname.startsWith('/api/ai/'),
+      { timeout: 1000 }
+    )
+    .then((request) => request.url())
+    .catch(() => null)
 
   await messageInput.fill('this contains blocked')
   await page.getByTestId('chat-send-button').click({ force: true })
 
   await expect(page.getByText('不適切な内容が含まれています')).toBeVisible()
-  expect(aiRequests).toHaveLength(0)
+  await expect(unexpectedAIRequest).resolves.toBeNull()
 })
 
 test('opens the passcode dialog from kiosk overlay and temporarily unlocks settings', async ({

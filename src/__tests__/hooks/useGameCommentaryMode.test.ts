@@ -295,6 +295,82 @@ describe('useGameCommentaryMode', () => {
     expect(mockGenerateGameCommentary).toHaveBeenCalledTimes(2)
   })
 
+  it('reschedules commentary when captureFrame rejects', async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+    mockCaptureFrame.mockRejectedValueOnce(new Error('capture failed'))
+
+    const { result } = renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(result.current.state).toBe('waiting')
+    })
+    expect(mockGenerateGameCommentary).not.toHaveBeenCalled()
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(mockCaptureFrame).toHaveBeenCalledTimes(2)
+    expect(mockGenerateGameCommentary).toHaveBeenCalledTimes(1)
+
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('does not generate commentary from a stale capture after interruption', async () => {
+    const deferred = createDeferred<string>()
+    mockCaptureFrame.mockReturnValueOnce(deferred.promise)
+
+    renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    const prevState = homeState
+    const nextState = {
+      ...homeState,
+      chatProcessing: true,
+    }
+
+    await act(async () => {
+      homeState = nextState
+      homeSubscriber?.(nextState, prevState)
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      deferred.resolve('data:image/jpeg;base64,stale')
+      await deferred.promise
+      await Promise.resolve()
+    })
+
+    expect(mockGenerateGameCommentary).not.toHaveBeenCalled()
+
+    await act(async () => {
+      homeState = {
+        ...homeState,
+        chatProcessing: false,
+      }
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(mockGenerateGameCommentary).toHaveBeenCalledTimes(1)
+  })
+
   it('cancels an in-flight commentary generation when another chat process starts', async () => {
     const deferred = createDeferred<{
       text: string

@@ -359,11 +359,34 @@ export function useGameCommentaryMode({
     const requestToken = commentaryRequestTokenRef.current + 1
     commentaryRequestTokenRef.current = requestToken
 
-    // キャプチャ取得
-    const imageData = await captureService.captureFrame(
-      gameCommentaryResizeWidth,
-      gameCommentaryImageQuality
-    )
+    let imageData: string | null
+    try {
+      imageData = await captureService.captureFrame(
+        gameCommentaryResizeWidth,
+        gameCommentaryImageQuality
+      )
+    } catch (error) {
+      console.error('ゲーム実況: キャプチャ取得エラー:', error)
+      isProcessingRef.current = false
+      if (isRunningRef.current) {
+        applyState('waiting')
+        scheduleNext()
+      }
+      return
+    }
+
+    if (
+      requestToken !== commentaryRequestTokenRef.current ||
+      !isRunningRef.current ||
+      stateRef.current !== 'capturing'
+    ) {
+      isProcessingRef.current = false
+      if (isRunningRef.current) {
+        applyState('waiting')
+        scheduleNext()
+      }
+      return
+    }
 
     if (!imageData) {
       console.warn('ゲーム実況: キャプチャ取得失敗')
