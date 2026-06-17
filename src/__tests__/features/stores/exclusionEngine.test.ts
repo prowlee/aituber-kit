@@ -596,6 +596,18 @@ describe('排他エンジン (computeExclusions)', () => {
       expect(corrections.externalLinkageMode).toBe(false)
       expect(corrections.slideMode).toBe(false)
     })
+
+    it('youtubeMode ON 中でも gameCommentaryEnabled を同時に有効化できる', () => {
+      const prev = createBaseState({
+        youtubeMode: true,
+        gameCommentaryEnabled: false,
+      })
+      const incoming = { gameCommentaryEnabled: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryEnabled).toBeUndefined()
+      expect(corrections.youtubeMode).toBeUndefined()
+    })
   })
 
   describe('Rule 21: gameCommentary-off-stopPlaying', () => {

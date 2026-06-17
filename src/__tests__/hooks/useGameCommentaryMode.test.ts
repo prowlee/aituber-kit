@@ -518,6 +518,98 @@ describe('useGameCommentaryMode', () => {
     )
   })
 
+  it('passes mixed viewer comments and saved commentary as recent context', async () => {
+    setupSettingsState({ maxPastMessages: 3 })
+    setupHomeState({
+      chatLog: [
+        {
+          id: '1',
+          role: 'assistant',
+          content: 'old assistant message',
+          timestamp: '2026-01-01',
+        },
+        {
+          id: '2',
+          role: 'user',
+          content: 'OneComme viewer comment',
+          timestamp: '2026-01-01',
+        },
+        {
+          id: '3',
+          role: 'assistant',
+          content: '[実況] first commentary',
+          timestamp: '2026-01-01',
+        },
+        {
+          id: '4',
+          role: 'user',
+          content: 'follow-up viewer comment',
+          timestamp: '2026-01-01',
+        },
+      ],
+    })
+
+    renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(mockGenerateGameCommentary).toHaveBeenCalledWith(
+      expect.any(Array),
+      'data:image/jpeg;base64,test',
+      [
+        { role: 'user', content: 'OneComme viewer comment' },
+        { role: 'assistant', content: '[実況] first commentary' },
+        { role: 'user', content: 'follow-up viewer comment' },
+      ],
+      [],
+      expect.objectContaining({ signal: expect.any(Object) })
+    )
+  })
+
+  it('saves generated commentary to chat log when enabled', async () => {
+    const upsertMessage = jest.fn()
+    setupSettingsState({ gameCommentarySaveToChat: true })
+    setupHomeState({ upsertMessage })
+
+    renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(upsertMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'assistant',
+        content: '[実況] 実況テストです。',
+      })
+    )
+  })
+
+  it('does not save generated commentary to chat log when disabled', async () => {
+    const upsertMessage = jest.fn()
+    setupSettingsState({ gameCommentarySaveToChat: false })
+    setupHomeState({ upsertMessage })
+
+    renderHook(() => useGameCommentaryMode({}))
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+      await Promise.resolve()
+    })
+
+    await flushAsync()
+
+    expect(upsertMessage).not.toHaveBeenCalled()
+  })
+
   it('uses a runtime lower bound when capture interval is set to zero', async () => {
     setupSettingsState({ gameCommentaryCaptureInterval: 0 })
 
