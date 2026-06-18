@@ -3,19 +3,12 @@ import homeStore from '@/features/stores/home'
 import CaptureService from '@/features/gameCommentary/captureService'
 import { VideoDisplay } from './common/VideoDisplay'
 
-let initialCaptureStream: MediaStream | null = null
-
-export const setInitialCaptureStream = (stream: MediaStream) => {
-  initialCaptureStream = stream
+type CaptureProps = {
+  initialStream?: MediaStream | null
+  onStreamChange?: (stream: MediaStream | null) => void
 }
 
-const consumeInitialCaptureStream = () => {
-  const stream = initialCaptureStream
-  initialCaptureStream = null
-  return stream
-}
-
-const Capture = () => {
+const Capture = ({ initialStream = null, onStreamChange }: CaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const captureStartedRef = useRef<boolean>(false)
@@ -28,31 +21,52 @@ const Capture = () => {
   const requestCapturePermissionAttempted = useRef<boolean>(false)
 
   // ストリームのクリーンアップを一元管理する関数
-  const cleanupStream = useCallback((updateState = true) => {
-    if (mediaStreamRef.current) {
-      const tracks = mediaStreamRef.current.getTracks()
-      tracks.forEach((track) => track.stop())
+  const cleanupStream = useCallback(
+    ({
+      updateState = true,
+      stopTracks = true,
+    }: {
+      updateState?: boolean
+      stopTracks?: boolean
+    } = {}) => {
+      if (mediaStreamRef.current) {
+        const tracks = mediaStreamRef.current.getTracks()
+        if (stopTracks) {
+          tracks.forEach((track) => track.stop())
+        }
+        mediaStreamRef.current = null
+      }
+      if (updateState) {
+        setMediaStream(null)
+        onStreamChange?.(null)
+        homeStore.setState({ captureStatus: false })
+      }
+      captureStartedRef.current = false
+
+      // CaptureServiceのキャプチャ関数を解除
+      CaptureService.getInstance().registerCaptureFunction(null)
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
+      }
+    },
+    [onStreamChange]
+  )
+
+  const stopCurrentStream = useCallback((nextStream?: MediaStream) => {
+    if (mediaStreamRef.current && mediaStreamRef.current !== nextStream) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop())
       mediaStreamRef.current = null
-    }
-    if (updateState) {
-      setMediaStream(null)
-    }
-    captureStartedRef.current = false
-    homeStore.setState({ captureStatus: false })
-
-    // CaptureServiceのキャプチャ関数を解除
-    CaptureService.getInstance().registerCaptureFunction(null)
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
     }
   }, [])
 
   // ストリームの設定を一元管理する関数
   const setupStream = useCallback(
     async (stream: MediaStream) => {
+      stopCurrentStream(stream)
       mediaStreamRef.current = stream
       setMediaStream(stream)
+      onStreamChange?.(stream)
       captureStartedRef.current = true
       homeStore.setState({ captureStatus: true })
 
@@ -83,11 +97,11 @@ const Capture = () => {
       // track endedイベント監視（ブラウザ側で共有停止された時の検知）
       stream.getVideoTracks().forEach((track) => {
         track.addEventListener('ended', () => {
-          cleanupStream()
+          cleanupStream({ stopTracks: false })
         })
       })
     },
-    [cleanupStream]
+    [cleanupStream, onStreamChange, stopCurrentStream]
   )
 
   // Capture permission request
@@ -112,9 +126,8 @@ const Capture = () => {
   useEffect(() => {
     // 初回のみ許可を要求
     if (!requestCapturePermissionAttempted.current && !permissionGranted) {
-      const stream = consumeInitialCaptureStream()
-      if (stream) {
-        setupStream(stream)
+      if (initialStream) {
+        setupStream(initialStream)
           .then(() => {
             setPermissionGranted(true)
             setShowPermissionModal(false)
@@ -128,7 +141,13 @@ const Capture = () => {
       }
       requestCapturePermissionAttempted.current = true
     }
-  }, [cleanupStream, permissionGranted, requestCapturePermission, setupStream])
+  }, [
+    cleanupStream,
+    initialStream,
+    permissionGranted,
+    requestCapturePermission,
+    setupStream,
+  ])
 
   const startCapture = async () => {
     // すでに画面共有中の場合は停止
@@ -151,7 +170,7 @@ const Capture = () => {
 
   useEffect(() => {
     return () => {
-      cleanupStream(false)
+      cleanupStream({ updateState: false, stopTracks: false })
     }
   }, [cleanupStream])
 
