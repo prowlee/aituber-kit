@@ -8,6 +8,7 @@ const Capture = () => {
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const captureStartedRef = useRef<boolean>(false)
 
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null)
   const [permissionGranted, setPermissionGranted] = useState<boolean>(false)
   const [showPermissionModal, setShowPermissionModal] = useState<boolean>(true)
 
@@ -15,11 +16,14 @@ const Capture = () => {
   const requestCapturePermissionAttempted = useRef<boolean>(false)
 
   // ストリームのクリーンアップを一元管理する関数
-  const cleanupStream = useCallback(() => {
+  const cleanupStream = useCallback((updateState = true) => {
     if (mediaStreamRef.current) {
       const tracks = mediaStreamRef.current.getTracks()
       tracks.forEach((track) => track.stop())
       mediaStreamRef.current = null
+    }
+    if (updateState) {
+      setMediaStream(null)
     }
     captureStartedRef.current = false
     homeStore.setState({ captureStatus: false })
@@ -36,6 +40,7 @@ const Capture = () => {
   const setupStream = useCallback(
     async (stream: MediaStream) => {
       mediaStreamRef.current = stream
+      setMediaStream(stream)
       captureStartedRef.current = true
       homeStore.setState({ captureStatus: true })
 
@@ -126,14 +131,14 @@ const Capture = () => {
 
   useEffect(() => {
     return () => {
-      cleanupStream()
+      cleanupStream(false)
     }
   }, [cleanupStream])
 
   return (
     <VideoDisplay
       videoRef={videoRef}
-      mediaStream={mediaStreamRef.current}
+      mediaStream={mediaStream}
       onToggleSource={startCapture}
       toggleSourceIcon="24/Reload"
       showToggleButton={true}
