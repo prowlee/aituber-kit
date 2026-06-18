@@ -71,6 +71,14 @@ function createTask(
   }
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 const mockModelSpeak = jest.fn().mockResolvedValue(undefined)
 const mockModelStopSpeaking = jest.fn()
 const mockModelPlayEmotion = jest.fn().mockResolvedValue(undefined)
@@ -229,6 +237,60 @@ describe('SpeakQueue', () => {
     })
   })
 
+  describe('stopSession', () => {
+    it('should stop the current session and increment stop token', () => {
+      const queue = SpeakQueue.getInstance()
+      queue.checkSessionId('session1')
+      const initialToken = SpeakQueue.currentStopToken
+
+      SpeakQueue.stopSession('session1')
+
+      expect(SpeakQueue.currentStopToken).toBe(initialToken + 1)
+      expect(mockModelStopSpeaking).toHaveBeenCalled()
+      expect(mockHomeSetState).toHaveBeenCalledWith({ isSpeaking: false })
+      expect(queue.isStopped()).toBe(true)
+    })
+
+    it('should not stop playback when the current session does not match', () => {
+      const queue = SpeakQueue.getInstance()
+      queue.checkSessionId('session1')
+      const initialToken = SpeakQueue.currentStopToken
+
+      SpeakQueue.stopSession('other-session')
+
+      expect(SpeakQueue.currentStopToken).toBe(initialToken)
+      expect(mockModelStopSpeaking).not.toHaveBeenCalled()
+      expect(queue.isStopped()).toBe(false)
+    })
+
+    it('should remove queued tasks for the target session only', () => {
+      const queue = SpeakQueue.getInstance()
+      ;(
+        queue as unknown as {
+          queue: ReturnType<typeof createTask>[]
+          currentSessionId: string
+        }
+      ).queue = [createTask('session1'), createTask('session2')]
+      ;(
+        queue as unknown as {
+          queue: ReturnType<typeof createTask>[]
+          currentSessionId: string
+        }
+      ).currentSessionId = 'session2'
+
+      SpeakQueue.stopSession('session1')
+
+      expect(
+        (
+          queue as unknown as {
+            queue: ReturnType<typeof createTask>[]
+          }
+        ).queue
+      ).toEqual([expect.objectContaining({ sessionId: 'session2' })])
+      expect(mockModelStopSpeaking).not.toHaveBeenCalled()
+    })
+  })
+
   describe('checkSessionId', () => {
     it('should update session ID on first call', () => {
       const queue = SpeakQueue.getInstance()
@@ -250,6 +312,28 @@ describe('SpeakQueue', () => {
       // Task with session1 should be discarded
       await queue.addTask(createTask('session1'))
       expect(mockModelSpeak).not.toHaveBeenCalled()
+    })
+
+    it('should call onComplete for queued tasks discarded by session change', async () => {
+      const queue = SpeakQueue.getInstance()
+      const speakDeferred = createDeferred<void>()
+      const queuedOnComplete = jest.fn()
+
+      mockModelSpeak.mockReturnValueOnce(speakDeferred.promise)
+      queue.checkSessionId('session1')
+
+      const firstTaskPromise = queue.addTask(createTask('session1'))
+      await Promise.resolve()
+      await queue.addTask(
+        createTask('session1', { onComplete: queuedOnComplete })
+      )
+
+      queue.checkSessionId('session2')
+
+      expect(queuedOnComplete).toHaveBeenCalledTimes(1)
+
+      speakDeferred.resolve()
+      await firstTaskPromise
     })
 
     it('should reset stopped state when stopped', async () => {

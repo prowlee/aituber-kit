@@ -517,11 +517,10 @@ export function isMultiModalModelWithToggle(
 
 /**
  * マルチモーダル機能が実際に使用可能かどうかを包括的に判定する
- * モデル対応状況、設定、利用モードの全てを考慮する
+ * モデル対応状況、設定の全てを考慮する
  * @param service AIサービス名
  * @param model モデル名
  * @param enableMultiModal マルチモーダルトグルの状態
- * @param multiModalMode マルチモーダル利用モード
  * @param customModel カスタムモデルかどうか
  * @returns マルチモーダル機能が使用可能な場合はtrue
  */
@@ -529,15 +528,8 @@ export function isMultiModalAvailable(
   service: AIService,
   model: string,
   enableMultiModal: boolean,
-  multiModalMode: 'ai-decide' | 'always' | 'never',
   customModel?: boolean
 ): boolean {
-  // 利用モードが'never'の場合は常にfalse
-  if (multiModalMode === 'never') {
-    return false
-  }
-
-  // モデル・設定による基本的な判定
   return isMultiModalModelWithToggle(
     service,
     model,
@@ -588,6 +580,7 @@ const serviceReasoningDefaults: Partial<
   xai: { efforts: ['low', 'high'], tokenBudget: false },
   groq: { efforts: ['low', 'medium', 'high'], tokenBudget: false },
   cohere: { efforts: [], tokenBudget: true },
+  ollama: { efforts: ['none', 'low', 'medium', 'high'], tokenBudget: false },
 }
 
 /**

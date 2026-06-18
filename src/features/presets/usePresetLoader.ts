@@ -28,6 +28,14 @@ const PROMPT_PRESETS: { key: string; filename: string }[] = [
     key: 'multiModalAiDecisionPrompt',
     filename: 'multimodal-ai-decision-prompt.txt',
   },
+  {
+    key: 'gameCommentaryPromptTemplate',
+    filename: 'game-commentary-prompt.txt',
+  },
+  {
+    key: 'gameCommentaryBackgroundAnalysisPromptTemplate',
+    filename: 'game-commentary-background-analysis-prompt.txt',
+  },
 ]
 
 export function usePresetLoader(): void {

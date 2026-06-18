@@ -42,7 +42,6 @@ export const useModelProviderState = () => {
   const reasoningEffort = settingsStore((s) => s.reasoningEffort)
   const reasoningTokenBudget = settingsStore((s) => s.reasoningTokenBudget)
   const showThinkingText = settingsStore((s) => s.showThinkingText)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const multiModalAiDecisionPrompt = settingsStore(
     (s) => s.multiModalAiDecisionPrompt
   )
@@ -122,7 +121,6 @@ export const useModelProviderState = () => {
     reasoningEffort,
     reasoningTokenBudget,
     showThinkingText,
-    multiModalMode,
     multiModalAiDecisionPrompt,
     enableMultiModal,
     selectAIService,

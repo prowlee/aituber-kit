@@ -240,46 +240,27 @@ describe('aiModels', () => {
   })
 
   describe('isMultiModalAvailable', () => {
-    it('should return false when mode is never', () => {
-      expect(isMultiModalAvailable('openai', 'gpt-4o', true, 'never')).toBe(
-        false
-      )
+    it('should return false when enableMultiModal is false for bypass services', () => {
+      expect(isMultiModalAvailable('azure', 'any-model', false)).toBe(false)
     })
 
-    it('should delegate to isMultiModalModelWithToggle when mode is always', () => {
-      expect(isMultiModalAvailable('openai', 'gpt-4o', true, 'always')).toBe(
-        true
-      )
-      expect(
-        isMultiModalAvailable('groq', 'gemma2-9b-it', true, 'always')
-      ).toBe(false)
-    })
-
-    it('should delegate to isMultiModalModelWithToggle when mode is ai-decide', () => {
-      expect(isMultiModalAvailable('openai', 'gpt-4o', true, 'ai-decide')).toBe(
-        true
-      )
-      expect(
-        isMultiModalAvailable('groq', 'gemma2-9b-it', true, 'ai-decide')
-      ).toBe(false)
+    it('should delegate to isMultiModalModelWithToggle', () => {
+      expect(isMultiModalAvailable('openai', 'gpt-4o', true)).toBe(true)
+      expect(isMultiModalAvailable('groq', 'gemma2-9b-it', true)).toBe(false)
     })
 
     it('should respect enableMultiModal for bypass services', () => {
-      expect(isMultiModalAvailable('azure', 'any-model', true, 'always')).toBe(
-        true
-      )
-      expect(isMultiModalAvailable('azure', 'any-model', false, 'always')).toBe(
-        false
-      )
+      expect(isMultiModalAvailable('azure', 'any-model', true)).toBe(true)
+      expect(isMultiModalAvailable('azure', 'any-model', false)).toBe(false)
     })
 
     it('should respect customModel flag', () => {
-      expect(
-        isMultiModalAvailable('openai', 'custom-model', true, 'always', true)
-      ).toBe(true)
-      expect(
-        isMultiModalAvailable('openai', 'custom-model', false, 'always', true)
-      ).toBe(false)
+      expect(isMultiModalAvailable('openai', 'custom-model', true, true)).toBe(
+        true
+      )
+      expect(isMultiModalAvailable('openai', 'custom-model', false, true)).toBe(
+        false
+      )
     })
   })
 

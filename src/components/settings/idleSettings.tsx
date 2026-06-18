@@ -62,8 +62,13 @@ const IdleSettings = () => {
   const audioMode = settingsStore((s) => s.audioMode)
   const externalLinkageMode = settingsStore((s) => s.externalLinkageMode)
   const slideMode = settingsStore((s) => s.slideMode)
+  const gameCommentaryEnabled = settingsStore((s) => s.gameCommentaryEnabled)
   const isIdleModeDisabled =
-    realtimeAPIMode || audioMode || externalLinkageMode || slideMode
+    realtimeAPIMode ||
+    audioMode ||
+    externalLinkageMode ||
+    slideMode ||
+    gameCommentaryEnabled
 
   // Local state for new phrase input
   const [newPhraseText, setNewPhraseText] = useState('')
@@ -195,6 +200,7 @@ const IdleSettings = () => {
               enabled={idleModeEnabled}
               onChange={(v) => settingsStore.setState({ idleModeEnabled: v })}
               disabled={isIdleModeDisabled}
+              testId="idle-mode-toggle"
             />
           </div>
         </div>
@@ -216,6 +222,7 @@ const IdleSettings = () => {
               value={idleInterval}
               onChange={handleIntervalChange}
               onBlur={handleIntervalBlur}
+              data-testid="idle-interval-input"
               aria-label={t('IdleInterval')}
               className="w-24 px-4 py-2 bg-white border border-gray-300 rounded-lg"
             />
@@ -245,6 +252,7 @@ const IdleSettings = () => {
                   idleAiGenerationEnabled: value === 'aiGeneration',
                 })
               }}
+              data-testid="idle-speech-source-select"
               aria-label={t('IdleSpeechSource')}
               className="w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg"
             >

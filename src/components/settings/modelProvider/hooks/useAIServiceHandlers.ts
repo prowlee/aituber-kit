@@ -3,6 +3,14 @@ import settingsStore from '@/features/stores/settings'
 import { isMultiModalModel, defaultModels } from '@/features/constants/aiModels'
 import { AIService } from '@/features/constants/settings'
 
+const multiModalToggleOnlyServices = new Set<AIService>([
+  'azure',
+  'openrouter',
+  'lmstudio',
+  'ollama',
+  'custom-api',
+])
+
 export const useAIServiceHandlers = () => {
   const updateMultiModalModeForModel = useCallback(
     (service: AIService, model: string) => {
@@ -13,13 +21,17 @@ export const useAIServiceHandlers = () => {
         return
       }
 
+      if (multiModalToggleOnlyServices.has(service)) {
+        return
+      }
+
       if (!isMultiModalModel(service, model)) {
         settingsStore.setState({
-          multiModalMode: 'never',
+          enableMultiModal: false,
         })
-      } else if (currentState.multiModalMode === 'never') {
+      } else if (!currentState.enableMultiModal) {
         settingsStore.setState({
-          multiModalMode: 'ai-decide',
+          enableMultiModal: true,
         })
       }
     },
@@ -34,11 +46,7 @@ export const useAIServiceHandlers = () => {
     settingsStore.setState({
       selectAIService: newService,
       selectAIModel: selectedModel,
-      multiModalMode:
-        newService === 'custom-api' &&
-        currentState.multiModalMode === 'ai-decide'
-          ? 'always'
-          : currentState.multiModalMode,
+      enableMultiModal: currentState.enableMultiModal,
     })
   }, [])
 

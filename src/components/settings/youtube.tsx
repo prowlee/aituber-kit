@@ -71,6 +71,7 @@ const YouTube = () => {
         <ToggleSwitch
           enabled={youtubeMode}
           onChange={handleChangeYoutubeMode}
+          testId="youtube-mode-toggle"
         />
       </div>
       <div className="mt-4">
@@ -79,6 +80,7 @@ const YouTube = () => {
         </div>
         <div className="my-2 flex">
           <button
+            data-testid="youtube-source-api-button"
             className={`px-4 py-2 rounded-lg mr-2 ${
               youtubeCommentSource === 'youtube-api'
                 ? 'bg-primary text-theme'
@@ -93,6 +95,7 @@ const YouTube = () => {
             {t('YoutubeCommentSourceAPI')}
           </button>
           <button
+            data-testid="youtube-source-onecomme-button"
             className={`px-4 py-2 rounded-lg ${
               youtubeCommentSource === 'onecomme'
                 ? 'bg-primary text-theme'
@@ -115,6 +118,7 @@ const YouTube = () => {
             </div>
             <div className="my-4 text-xl font-bold">{t('YoutubeAPIKey')}</div>
             <input
+              data-testid="youtube-api-key-input"
               className="text-ellipsis px-4 py-2 w-full sm:w-col-span-2 bg-white hover:bg-white-hover rounded-lg"
               type="text"
               placeholder="..."
@@ -127,6 +131,7 @@ const YouTube = () => {
             />
             <div className="my-4 text-xl font-bold">{t('YoutubeLiveID')}</div>
             <input
+              data-testid="youtube-live-id-input"
               className="text-ellipsis px-4 py-2 w-full sm:w-col-span-2 bg-white hover:bg-white-hover rounded-lg"
               type="text"
               placeholder="..."
@@ -147,6 +152,7 @@ const YouTube = () => {
             </div>
             <div className="my-4 text-xl font-bold">{t('OneCommePort')}</div>
             <input
+              data-testid="onecomme-port-input"
               className="text-ellipsis px-4 py-2 w-full sm:w-col-span-2 bg-white hover:bg-white-hover rounded-lg"
               type="number"
               placeholder="11180"
@@ -167,6 +173,7 @@ const YouTube = () => {
             {t('YoutubeCommentInterval')}: {youtubeCommentInterval}
           </div>
           <input
+            data-testid="youtube-comment-interval-input"
             type="range"
             min={3}
             max={30}

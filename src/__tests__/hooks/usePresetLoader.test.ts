@@ -18,6 +18,8 @@ const PROMPT_PRESET_KEYS = [
   'conversationContinuityPromptNewTopic',
   'conversationContinuityPromptSelectComment',
   'multiModalAiDecisionPrompt',
+  'gameCommentaryPromptTemplate',
+  'gameCommentaryBackgroundAnalysisPromptTemplate',
 ] as const
 
 const PROMPT_PRESET_FILES = [
@@ -28,6 +30,8 @@ const PROMPT_PRESET_FILES = [
   'youtube-prompt-new-topic.txt',
   'youtube-prompt-select-comment.txt',
   'multimodal-ai-decision-prompt.txt',
+  'game-commentary-prompt.txt',
+  'game-commentary-background-analysis-prompt.txt',
 ]
 
 describe('usePresetLoader', () => {
@@ -46,6 +50,8 @@ describe('usePresetLoader', () => {
       conversationContinuityPromptNewTopic: '',
       conversationContinuityPromptSelectComment: '',
       multiModalAiDecisionPrompt: '',
+      gameCommentaryPromptTemplate: '',
+      gameCommentaryBackgroundAnalysisPromptTemplate: '',
     })
   })
 
@@ -64,7 +70,7 @@ describe('usePresetLoader', () => {
     renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(14)
     })
 
     expect(mockLoadPreset).toHaveBeenCalledWith('preset1.txt')
@@ -92,7 +98,7 @@ describe('usePresetLoader', () => {
     renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(10)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
     })
 
     // Should skip preset1 and preset3 since they have existing values
@@ -113,7 +119,7 @@ describe('usePresetLoader', () => {
     renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(14)
     })
 
     const state = settingsStore.getState()
@@ -133,7 +139,7 @@ describe('usePresetLoader', () => {
     renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(14)
     })
 
     const state = settingsStore.getState()
@@ -150,7 +156,7 @@ describe('usePresetLoader', () => {
     renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(14)
     })
 
     // Empty string is falsy, so setState should not be called
@@ -164,13 +170,13 @@ describe('usePresetLoader', () => {
     const { rerender } = renderHook(() => usePresetLoader())
 
     await waitFor(() => {
-      expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+      expect(mockLoadPreset).toHaveBeenCalledTimes(14)
     })
 
     rerender()
 
     // Should still be 12 calls total, not 24
-    expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+    expect(mockLoadPreset).toHaveBeenCalledTimes(14)
   })
 
   describe('prompt presets', () => {
@@ -184,6 +190,8 @@ describe('usePresetLoader', () => {
           'youtube-prompt-new-topic.txt': 'New topic prompt',
           'youtube-prompt-select-comment.txt': 'Select comment prompt',
           'multimodal-ai-decision-prompt.txt': 'Multimodal decision prompt',
+          'game-commentary-background-analysis-prompt.txt':
+            'Background analysis prompt',
         }
         return Promise.resolve(presets[filename] || null)
       })
@@ -191,7 +199,7 @@ describe('usePresetLoader', () => {
       renderHook(() => usePresetLoader())
 
       await waitFor(() => {
-        expect(mockLoadPreset).toHaveBeenCalledTimes(12)
+        expect(mockLoadPreset).toHaveBeenCalledTimes(14)
       })
 
       PROMPT_PRESET_FILES.forEach((filename) => {
@@ -213,6 +221,9 @@ describe('usePresetLoader', () => {
       )
       expect(state.multiModalAiDecisionPrompt).toBe(
         'Multimodal decision prompt'
+      )
+      expect(state.gameCommentaryBackgroundAnalysisPromptTemplate).toBe(
+        'Background analysis prompt'
       )
     })
 

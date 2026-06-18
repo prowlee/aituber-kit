@@ -43,10 +43,11 @@ export const Menu = () => {
   const selectAIService = settingsStore((s) => s.selectAIService)
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const customModel = settingsStore((s) => s.customModel)
   const youtubeMode = settingsStore((s) => s.youtubeMode)
   const youtubePlaying = settingsStore((s) => s.youtubePlaying)
+  const gameCommentaryEnabled = settingsStore((s) => s.gameCommentaryEnabled)
+  const gameCommentaryPlaying = settingsStore((s) => s.gameCommentaryPlaying)
   const slideMode = settingsStore((s) => s.slideMode)
   const slideVisible = menuStore((s) => s.slideVisible)
   const chatLog = homeStore((s) => s.chatLog)
@@ -204,6 +205,18 @@ export const Menu = () => {
     }
   }, [youtubePlaying])
 
+  const toggleGameCommentary = useCallback(() => {
+    const nextPlaying = !gameCommentaryPlaying
+    settingsStore.setState({ gameCommentaryPlaying: nextPlaying })
+    if (nextPlaying) {
+      // 開始時: キャプチャが未表示なら自動で表示する
+      if (!showCapture) {
+        menuStore.setState({ showCapture: true, showWebcam: false })
+        homeStore.setState({ webcamStatus: false })
+      }
+    }
+  }, [gameCommentaryPlaying, showCapture])
+
   const toggleCapture = useCallback(() => {
     menuStore.setState(({ showCapture }) => ({ showCapture: !showCapture }))
     menuStore.setState({ showWebcam: false }) // Captureを表示するときWebcamを非表示にする
@@ -247,6 +260,7 @@ export const Menu = () => {
                     iconName="24/Settings"
                     isProcessing={false}
                     onClick={() => setShowSettings(true)}
+                    data-testid="open-settings-button"
                   ></IconButton>
                 </div>
               )}
@@ -264,55 +278,51 @@ export const Menu = () => {
                   onClick={() => setChatLogMode((prev) => (prev + 1) % 3)}
                 />
               </div>
-              {!youtubeMode && (
-                <>
-                  <div className="order-3">
-                    <IconButton
-                      iconName="screen-share"
-                      isProcessing={false}
-                      onClick={toggleCapture}
-                    />
-                  </div>
-                  <div className="order-4">
-                    <IconButton
-                      iconName="24/Camera"
-                      isProcessing={false}
-                      onClick={toggleWebcam}
-                    />
-                  </div>
-                  {isMultiModalAvailable(
-                    selectAIService as AIService,
-                    selectAIModel,
-                    enableMultiModal,
-                    multiModalMode,
-                    customModel
-                  ) && (
-                    <div className="order-4">
-                      <IconButton
-                        iconName="24/AddImage"
-                        isProcessing={false}
-                        onClick={() => imageFileInputRef.current?.click()}
-                      />
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        ref={imageFileInputRef}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onload = (e) => {
-                              const imageUrl = e.target?.result as string
-                              homeStore.setState({ modalImage: imageUrl })
-                            }
-                            reader.readAsDataURL(file)
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </>
+              <div className="order-3">
+                <IconButton
+                  iconName="screen-share"
+                  isProcessing={false}
+                  onClick={toggleCapture}
+                  data-testid="capture-toggle-button"
+                />
+              </div>
+              <div className="order-4">
+                <IconButton
+                  iconName="24/Camera"
+                  isProcessing={false}
+                  onClick={toggleWebcam}
+                />
+              </div>
+              {isMultiModalAvailable(
+                selectAIService as AIService,
+                selectAIModel,
+                enableMultiModal,
+                customModel
+              ) && (
+                <div className="order-4">
+                  <IconButton
+                    iconName="24/AddImage"
+                    isProcessing={false}
+                    onClick={() => imageFileInputRef.current?.click()}
+                  />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    ref={imageFileInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onload = (e) => {
+                          const imageUrl = e.target?.result as string
+                          homeStore.setState({ modalImage: imageUrl })
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  />
+                </div>
               )}
               {youtubeMode && (
                 <div className="order-5">
@@ -324,6 +334,21 @@ export const Menu = () => {
                         youtubePlaying: !youtubePlaying,
                       })
                     }
+                    aria-pressed={youtubePlaying}
+                    data-testid="youtube-play-toggle-button"
+                  />
+                </div>
+              )}
+              {gameCommentaryEnabled && (
+                <div className="order-5">
+                  <IconButton
+                    iconName={
+                      gameCommentaryPlaying ? '24/PauseAlt' : 'game-controller'
+                    }
+                    isProcessing={false}
+                    onClick={toggleGameCommentary}
+                    aria-pressed={gameCommentaryPlaying}
+                    data-testid="game-commentary-play-toggle-button"
                   />
                 </div>
               )}
@@ -336,6 +361,8 @@ export const Menu = () => {
                       menuStore.setState({ slideVisible: !slideVisible })
                     }
                     disabled={slidePlaying}
+                    aria-pressed={slideVisible}
+                    data-testid="slide-visibility-toggle-button"
                   />
                 </div>
               )}

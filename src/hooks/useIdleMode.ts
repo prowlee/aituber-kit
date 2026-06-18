@@ -201,7 +201,6 @@ export function useIdleMode({
     idleTimePeriodAfternoonEmotion,
     idleTimePeriodEvening,
     idleTimePeriodEveningEmotion,
-    idleAiGenerationEnabled,
   ])
 
   // ----- 発話実行 -----

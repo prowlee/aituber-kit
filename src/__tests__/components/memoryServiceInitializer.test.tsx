@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { render } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryServiceInitializer } from '@/components/memoryServiceInitializer'
 import settingsStore from '@/features/stores/settings'
@@ -28,41 +28,61 @@ describe('MemoryServiceInitializer', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    settingsStore.setState(originalState)
+    act(() => {
+      settingsStore.setState(originalState)
+    })
   })
 
   afterEach(() => {
-    settingsStore.setState(originalState)
+    act(() => {
+      settingsStore.setState(originalState)
+    })
   })
 
   it('should render null', () => {
-    settingsStore.setState({ memoryEnabled: false })
+    act(() => {
+      settingsStore.setState({ memoryEnabled: false })
+    })
     const { container } = render(<MemoryServiceInitializer />)
     expect(container.innerHTML).toBe('')
   })
 
-  it('should call initializeMemoryService when memoryEnabled is true', () => {
-    settingsStore.setState({ memoryEnabled: true })
+  it('should call initializeMemoryService when memoryEnabled is true', async () => {
+    act(() => {
+      settingsStore.setState({ memoryEnabled: true })
+    })
     render(<MemoryServiceInitializer />)
-    expect(mockInitializeMemoryService).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(mockInitializeMemoryService).toHaveBeenCalled()
+    })
   })
 
   it('should not call initializeMemoryService when memoryEnabled is false', () => {
-    settingsStore.setState({ memoryEnabled: false })
+    act(() => {
+      settingsStore.setState({ memoryEnabled: false })
+    })
     render(<MemoryServiceInitializer />)
     expect(mockInitializeMemoryService).not.toHaveBeenCalled()
   })
 
-  it('should call resetMemoryService when memoryEnabled changes from true to false', () => {
-    settingsStore.setState({ memoryEnabled: true })
+  it('should call resetMemoryService when memoryEnabled changes from true to false', async () => {
+    act(() => {
+      settingsStore.setState({ memoryEnabled: true })
+    })
     const { rerender } = render(<MemoryServiceInitializer />)
 
-    expect(mockInitializeMemoryService).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(mockInitializeMemoryService).toHaveBeenCalledTimes(1)
+    })
 
     // Change memoryEnabled to false
-    settingsStore.setState({ memoryEnabled: false })
+    act(() => {
+      settingsStore.setState({ memoryEnabled: false })
+    })
     rerender(<MemoryServiceInitializer />)
 
-    expect(mockResetMemoryService).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(mockResetMemoryService).toHaveBeenCalled()
+    })
   })
 })

@@ -168,7 +168,7 @@ export const exclusionRules: ExclusionRule[] = [
     apply: () => ({
       conversationContinuityMode: false,
       slideMode: false,
-      multiModalMode: 'never' as const,
+      enableMultiModal: false,
     }),
     crossStoreEffects: () => [
       { store: 'menu', state: { showWebcam: false } },
@@ -275,51 +275,106 @@ export const exclusionRules: ExclusionRule[] = [
     },
   },
 
-  // Rule 14: realtimeAPIMode ON → アイドル・人感検知OFF
+  // Rule 14: realtimeAPIMode ON → アイドル・人感検知・ゲーム実況OFF
   {
     id: 'realtimeAPI-on-disableIdlePresence',
     description:
-      'realtimeAPIMode ON時にidleModeEnabled, presenceDetectionEnabledをOFFにする',
+      'realtimeAPIMode ON時にidleModeEnabled, presenceDetectionEnabled, gameCommentaryEnabledをOFFにする',
     trigger: (_incoming, merged) => merged.realtimeAPIMode === true,
     apply: () => ({
       idleModeEnabled: false,
       presenceDetectionEnabled: false,
+      gameCommentaryEnabled: false,
     }),
   },
 
-  // Rule 15: audioMode ON → アイドル・人感検知OFF
+  // Rule 15: audioMode ON → アイドル・人感検知・ゲーム実況OFF
   {
     id: 'audioMode-on-disableIdlePresence',
     description:
-      'audioMode ON時にidleModeEnabled, presenceDetectionEnabledをOFFにする',
+      'audioMode ON時にidleModeEnabled, presenceDetectionEnabled, gameCommentaryEnabledをOFFにする',
     trigger: (_incoming, merged) => merged.audioMode === true,
     apply: () => ({
       idleModeEnabled: false,
       presenceDetectionEnabled: false,
+      gameCommentaryEnabled: false,
     }),
   },
 
-  // Rule 16: externalLinkageMode ON → アイドル・人感検知OFF
+  // Rule 16: externalLinkageMode ON → アイドル・人感検知・ゲーム実況OFF
   {
     id: 'externalLinkage-on-disableIdlePresence',
     description:
-      'externalLinkageMode ON時にidleModeEnabled, presenceDetectionEnabledをOFFにする',
+      'externalLinkageMode ON時にidleModeEnabled, presenceDetectionEnabled, gameCommentaryEnabledをOFFにする',
     trigger: (_incoming, merged) => merged.externalLinkageMode === true,
     apply: () => ({
       idleModeEnabled: false,
       presenceDetectionEnabled: false,
+      gameCommentaryEnabled: false,
     }),
   },
 
-  // Rule 17: slideMode ON → アイドル・人感検知OFF
+  // Rule 17: slideMode ON → アイドル・人感検知・ゲーム実況OFF
   {
     id: 'slideMode-on-disableIdlePresence',
     description:
-      'slideMode ON時にidleModeEnabled, presenceDetectionEnabledをOFFにする',
+      'slideMode ON時にidleModeEnabled, presenceDetectionEnabled, gameCommentaryEnabledをOFFにする',
     trigger: (_incoming, merged) => merged.slideMode === true,
     apply: () => ({
       idleModeEnabled: false,
       presenceDetectionEnabled: false,
+      gameCommentaryEnabled: false,
+    }),
+  },
+
+  // Rule 18: gameCommentaryEnabled ON → アイドル・人感検知・realtimeAPI・audioMode・externalLinkageOFF
+  {
+    id: 'gameCommentary-on',
+    description:
+      'gameCommentaryEnabled ON時にidleModeEnabled, presenceDetectionEnabled, realtimeAPIMode, audioMode, externalLinkageMode, slideModeをOFFにする',
+    trigger: (_incoming, merged) => merged.gameCommentaryEnabled === true,
+    apply: () => ({
+      idleModeEnabled: false,
+      presenceDetectionEnabled: false,
+      realtimeAPIMode: false,
+      audioMode: false,
+      externalLinkageMode: false,
+      slideMode: false,
+    }),
+  },
+
+  // Rule 19: idleModeEnabled ON → ゲーム実況OFF
+  {
+    id: 'idleMode-on-disableGameCommentary',
+    description: 'idleModeEnabled ON時にgameCommentaryEnabledをOFFにする',
+    trigger: (_incoming, merged) => merged.idleModeEnabled === true,
+    apply: () => ({
+      gameCommentaryEnabled: false,
+    }),
+  },
+
+  // Rule 20: presenceDetectionEnabled ON → ゲーム実況OFF
+  {
+    id: 'presenceDetection-on-disableGameCommentary',
+    description:
+      'presenceDetectionEnabled ON時にgameCommentaryEnabledをOFFにする',
+    trigger: (_incoming, merged) => merged.presenceDetectionEnabled === true,
+    apply: () => ({
+      gameCommentaryEnabled: false,
+    }),
+  },
+
+  // Rule 21: gameCommentaryEnabled OFF → 再生状態も停止
+  {
+    id: 'gameCommentary-off-stopPlaying',
+    description:
+      'gameCommentaryEnabled OFF時にgameCommentaryPlayingもOFFにする',
+    trigger: (incoming, merged, prev) =>
+      wasSet(incoming, 'gameCommentaryEnabled') &&
+      prev.gameCommentaryEnabled === true &&
+      merged.gameCommentaryEnabled === false,
+    apply: () => ({
+      gameCommentaryPlaying: false,
     }),
   },
 ]

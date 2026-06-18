@@ -86,7 +86,7 @@ export const ModelSelector = ({
         )}
       </div>
 
-      {showMultiModalToggle && customModel && onMultiModalToggle && (
+      {showMultiModalToggle && onMultiModalToggle && (
         <div className="my-6">
           <div className="my-4 text-xl font-bold">{t('EnableMultiModal')}</div>
           <div className="my-2">

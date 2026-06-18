@@ -8,7 +8,15 @@ interface ResizableOptions {
   aspectRatio?: boolean
   initialWidth?: number
   initialHeight?: number
+  onResize?: (details: ResizeDetails) => void
   onSizeChange?: (size: { width: number; height: number }) => void
+}
+
+export interface ResizeDetails {
+  size: { width: number; height: number }
+  direction: string
+  startSize: { width: number; height: number }
+  deltaSize: { width: number; height: number }
 }
 
 export const useResizable = (options: ResizableOptions = {}) => {
@@ -24,10 +32,11 @@ export const useResizable = (options: ResizableOptions = {}) => {
     aspectRatio = true,
     initialWidth = 512,
     initialHeight = 384,
+    onResize,
     onSizeChange,
   } = options
 
-  const [size, setSize] = useState({
+  const [size, setSizeState] = useState({
     width: initialWidth,
     height: initialHeight,
   })
@@ -79,25 +88,85 @@ export const useResizable = (options: ResizableOptions = {}) => {
         newHeight = startSizeRef.current.height - deltaY
       }
 
-      // Apply constraints
-      newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth))
-      newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight))
+      const clamp = (value: number, min: number, max: number) =>
+        Math.max(min, Math.min(max, value))
 
       // Maintain aspect ratio if enabled
       if (aspectRatio) {
-        if (direction === 'right' || direction === 'left') {
-          newHeight = newWidth / aspectRatioRef.current
-        } else if (direction === 'top' || direction === 'bottom') {
-          newWidth = newHeight * aspectRatioRef.current
-        } else {
-          // For corner resizing, prioritize width changes
-          newHeight = newWidth / aspectRatioRef.current
+        const ratio = aspectRatioRef.current || 1
+        const applyFromWidth = (candidateWidth: number) => {
+          const width = clamp(candidateWidth, minWidth, maxWidth)
+          return { width, height: width / ratio }
         }
+        const applyFromHeight = (candidateHeight: number) => {
+          const height = clamp(candidateHeight, minHeight, maxHeight)
+          return { width: height * ratio, height }
+        }
+
+        const preferHeight = direction === 'top' || direction === 'bottom'
+        const nextSize = preferHeight
+          ? applyFromHeight(newHeight)
+          : applyFromWidth(newWidth)
+
+        newWidth = nextSize.width
+        newHeight = nextSize.height
+
+        if (newWidth > maxWidth) {
+          const adjusted = applyFromWidth(maxWidth)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+        if (newHeight > maxHeight) {
+          const adjusted = applyFromHeight(maxHeight)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+        if (newWidth < minWidth) {
+          const adjusted = applyFromWidth(minWidth)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+        if (newHeight < minHeight) {
+          const adjusted = applyFromHeight(minHeight)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+        if (newWidth > maxWidth) {
+          const adjusted = applyFromWidth(maxWidth)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+        if (newHeight > maxHeight) {
+          const adjusted = applyFromHeight(maxHeight)
+          newWidth = adjusted.width
+          newHeight = adjusted.height
+        }
+      } else {
+        newWidth = clamp(newWidth, minWidth, maxWidth)
+        newHeight = clamp(newHeight, minHeight, maxHeight)
       }
 
-      setSize({ width: newWidth, height: newHeight })
+      const nextSize = { width: newWidth, height: newHeight }
+      setSizeState(nextSize)
+      onResize?.({
+        size: nextSize,
+        direction,
+        startSize: startSizeRef.current,
+        deltaSize: {
+          width: newWidth - startSizeRef.current.width,
+          height: newHeight - startSizeRef.current.height,
+        },
+      })
     },
-    [isResizing, minWidth, minHeight, maxWidth, maxHeight, aspectRatio]
+    [
+      isResizing,
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight,
+      aspectRatio,
+      onResize,
+    ]
   )
 
   const handleResizeEnd = useCallback(() => {
@@ -137,13 +206,26 @@ export const useResizable = (options: ResizableOptions = {}) => {
   }, [isResizing, handleResizeMove, handleResizeEnd])
 
   const resetSize = useCallback(() => {
-    setSize({ width: initialWidth, height: initialHeight })
+    setSizeState({ width: initialWidth, height: initialHeight })
   }, [initialWidth, initialHeight])
+
+  const setSize = useCallback((nextSize: { width: number; height: number }) => {
+    setSizeState((currentSize) => {
+      if (
+        currentSize.width === nextSize.width &&
+        currentSize.height === nextSize.height
+      ) {
+        return currentSize
+      }
+      return nextSize
+    })
+  }, [])
 
   return {
     size,
     isResizing,
     handleResizeStart,
     resetSize,
+    setSize,
   }
 }

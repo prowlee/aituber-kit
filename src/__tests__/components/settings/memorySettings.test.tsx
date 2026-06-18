@@ -46,7 +46,12 @@ jest.mock('react-i18next', () => ({
 
 // Mock memoryService
 const mockMemoryService = {
-  getMemoryCount: jest.fn().mockResolvedValue(0),
+  getMemoryCount: jest.fn(
+    () =>
+      new Promise<number>(() => {
+        // Most tests do not need the initial memory-count fetch to resolve.
+      })
+  ),
   clearAllMemories: jest.fn().mockResolvedValue(undefined),
   isAvailable: jest.fn().mockReturnValue(true),
 }
@@ -69,7 +74,12 @@ describe('MemorySettings Component', () => {
 
     // Reset mocks
     jest.clearAllMocks()
-    mockMemoryService.getMemoryCount.mockResolvedValue(0)
+    mockMemoryService.getMemoryCount.mockImplementation(
+      () =>
+        new Promise<number>(() => {
+          // Most tests do not need the initial memory-count fetch to resolve.
+        })
+    )
   })
 
   describe('Requirement 5.1: Memory ON/OFF Toggle', () => {

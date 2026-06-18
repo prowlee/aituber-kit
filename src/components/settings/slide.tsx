@@ -17,7 +17,6 @@ const Slide = () => {
   const selectAIService = settingsStore((s) => s.selectAIService)
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const customModel = settingsStore((s) => s.customModel)
 
   const slideMode = settingsStore((s) => s.slideMode)
@@ -54,7 +53,6 @@ const Slide = () => {
     selectAIService,
     selectAIModel,
     enableMultiModal,
-    multiModalMode,
     customModel
   )
 
@@ -79,6 +77,7 @@ const Slide = () => {
           enabled={slideMode}
           onChange={() => toggleSlideMode()}
           disabled={!isSlideAvailable}
+          testId="slide-mode-toggle"
         />
       </div>
       <div className="mt-6 mb-4 text-xl font-bold">
@@ -88,6 +87,7 @@ const Slide = () => {
       <div className="flex items-center gap-2">
         <select
           id="folder-select"
+          data-testid="slide-folder-select"
           className="px-4 py-2 bg-white hover:bg-white-hover rounded-lg w-full md:w-1/2"
           value={selectedSlideDocs || ''}
           onChange={handleFolderChange}

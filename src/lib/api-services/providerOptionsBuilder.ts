@@ -71,6 +71,9 @@ export function buildReasoningProviderOptions(
       }
     }
 
+    case 'ollama':
+      return { ollama: { reasoningEffort } }
+
     default:
       return undefined
   }

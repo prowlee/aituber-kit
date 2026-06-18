@@ -13,6 +13,7 @@ type SettingsTabKey =
   | 'memory'
   | 'presence'
   | 'idle'
+  | 'gameCommentary'
   | 'kiosk'
   | 'other'
 interface MenuState {

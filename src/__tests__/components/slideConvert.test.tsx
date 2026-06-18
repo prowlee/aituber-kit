@@ -83,7 +83,6 @@ describe('SlideConvert', () => {
         selectLanguage: 'ja',
         selectAIModel: 'gpt-4o',
         enableMultiModal: true,
-        multiModalMode: 'always',
         customModel: false,
       }
       return selector(state as any)

@@ -4,18 +4,21 @@ interface ToggleSwitchProps {
   enabled: boolean
   onChange: (enabled: boolean) => void
   disabled?: boolean
+  testId?: string
 }
 
 export const ToggleSwitch = ({
   enabled,
   onChange,
   disabled = false,
+  testId,
 }: ToggleSwitchProps) => {
   return (
     <Switch
       checked={enabled}
       onChange={onChange}
       disabled={disabled}
+      data-testid={testId}
       className={`${enabled ? 'bg-primary' : 'bg-[#c0c0c0]'}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         relative inline-flex h-7 w-12 shrink-0 rounded-full

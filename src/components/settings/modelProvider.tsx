@@ -49,7 +49,6 @@ const ModelProvider = () => {
             selectAIModel={state.selectAIModel}
             customModel={state.customModel}
             enableMultiModal={state.enableMultiModal}
-            multiModalMode={state.multiModalMode}
             updateMultiModalModeForModel={updateMultiModalModeForModel}
           />
         )
@@ -526,58 +525,6 @@ const ModelProvider = () => {
                 </div>
               </>
             )}
-
-          {state.isMultiModalSupported && (
-            <div className="border-t border-gray-300 pt-6 my-6">
-              <div className="my-4 text-xl font-bold">
-                {t('MultiModalMode')}
-              </div>
-              <div className="my-2 text-sm whitespace-pre-wrap">
-                {t('MultiModalModeDescription')}
-              </div>
-              <div className="my-2">
-                <select
-                  className="px-4 py-2 w-full sm:w-col-span-2 bg-white hover:bg-white-hover rounded-lg"
-                  value={state.multiModalMode}
-                  onChange={(e) =>
-                    settingsStore.setState({
-                      multiModalMode: e.target.value as
-                        | 'ai-decide'
-                        | 'always'
-                        | 'never',
-                    })
-                  }
-                >
-                  {state.selectAIService !== 'custom-api' && (
-                    <option value="ai-decide">
-                      {t('MultiModalModeAIDecide')}
-                    </option>
-                  )}
-                  <option value="always">{t('MultiModalModeAlways')}</option>
-                  <option value="never">{t('MultiModalModeNever')}</option>
-                </select>
-              </div>
-              {state.multiModalMode === 'ai-decide' &&
-                state.selectAIService !== 'custom-api' && (
-                  <div className="my-4">
-                    <div className="my-2 text-sm font-medium">
-                      {t('MultiModalAIDecisionPrompt')}
-                    </div>
-                    <textarea
-                      className="w-full px-4 py-2 bg-white hover:bg-white-hover rounded-lg text-sm"
-                      rows={3}
-                      value={state.multiModalAiDecisionPrompt}
-                      onChange={(e) => {
-                        settingsStore.setState({
-                          multiModalAiDecisionPrompt: e.target.value,
-                        })
-                      }}
-                      placeholder={t('MultiModalAIDecisionPromptPlaceholder')}
-                    />
-                  </div>
-                )}
-            </div>
-          )}
 
           {(state.realtimeAPIMode || state.audioMode) && (
             <div className="my-6 p-4 bg-white rounded-lg text-sm ">

@@ -55,7 +55,6 @@ export const MessageInput = ({
   const selectAIModel = settingsStore((s) => s.selectAIModel)
   const imageDisplayPosition = settingsStore((s) => s.imageDisplayPosition)
   const enableMultiModal = settingsStore((s) => s.enableMultiModal)
-  const multiModalMode = settingsStore((s) => s.multiModalMode)
   const customModel = settingsStore((s) => s.customModel)
   const [rows, setRows] = useState(1)
   const [loadingDots, setLoadingDots] = useState('')
@@ -86,7 +85,6 @@ export const MessageInput = ({
     selectAIService,
     selectAIModel,
     enableMultiModal,
-    multiModalMode,
     customModel
   )
 
@@ -546,6 +544,7 @@ export const MessageInput = ({
               )}
               <textarea
                 ref={textareaRef}
+                data-testid="chat-message-input"
                 placeholder={
                   chatProcessing
                     ? `${t('AnswerGenerating')}${loadingDots}`
@@ -580,6 +579,7 @@ export const MessageInput = ({
                 isProcessing={chatProcessing}
                 disabled={chatProcessing || !userMessage || realtimeAPIMode}
                 onClick={handleSendClick}
+                data-testid="chat-send-button"
               />
 
               <IconButton
@@ -587,6 +587,7 @@ export const MessageInput = ({
                 className="bg-secondary hover:bg-secondary-hover active:bg-secondary-press disabled:bg-secondary-disabled"
                 onClick={onClickStopButton}
                 isProcessing={false}
+                data-testid="chat-stop-button"
               />
             </div>
           </div>

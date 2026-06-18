@@ -30,7 +30,6 @@ function createBaseState(
     showSilenceProgressBar: true,
     continuousMicListeningMode: true,
     useSearchGrounding: false,
-    multiModalMode: 'ai-decide',
     enableMultiModal: true,
     customModel: false,
     idleModeEnabled: false,
@@ -192,7 +191,6 @@ describe('排他エンジン (computeExclusions)', () => {
         selectAIService: 'openai',
         slideMode: true,
         conversationContinuityMode: true,
-        multiModalMode: 'ai-decide',
       })
       // difyはマルチモーダル非対応
       const incoming = { selectAIService: 'dify' as const }
@@ -203,7 +201,7 @@ describe('排他エンジン (computeExclusions)', () => {
 
       expect(corrections.conversationContinuityMode).toBe(false)
       expect(corrections.slideMode).toBe(false)
-      expect(corrections.multiModalMode).toBe('never')
+      expect(corrections.enableMultiModal).toBe(false)
       expect(crossStoreEffects).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ store: 'menu' }),
@@ -566,6 +564,87 @@ describe('排他エンジン (computeExclusions)', () => {
       expect(corrections.idleModeEnabled).toBe(false)
       expect(corrections.presenceDetectionEnabled).toBe(false)
     })
+
+    it('slideMode ON で gameCommentaryEnabled が OFF', () => {
+      const prev = createBaseState({
+        gameCommentaryEnabled: true,
+      })
+      const incoming = { slideMode: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryEnabled).toBe(false)
+    })
+  })
+
+  describe('Rule 18: gameCommentary-on', () => {
+    it('gameCommentaryEnabled ON で idleModeEnabled, presenceDetectionEnabled, realtimeAPIMode, audioMode, externalLinkageMode, slideMode が OFF', () => {
+      const prev = createBaseState({
+        idleModeEnabled: true,
+        presenceDetectionEnabled: true,
+        realtimeAPIMode: true,
+        audioMode: true,
+        externalLinkageMode: true,
+        slideMode: true,
+      })
+      const incoming = { gameCommentaryEnabled: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.idleModeEnabled).toBe(false)
+      expect(corrections.presenceDetectionEnabled).toBe(false)
+      expect(corrections.realtimeAPIMode).toBe(false)
+      expect(corrections.audioMode).toBe(false)
+      expect(corrections.externalLinkageMode).toBe(false)
+      expect(corrections.slideMode).toBe(false)
+    })
+
+    it('youtubeMode ON 中でも gameCommentaryEnabled を同時に有効化できる', () => {
+      const prev = createBaseState({
+        youtubeMode: true,
+        gameCommentaryEnabled: false,
+      })
+      const incoming = { gameCommentaryEnabled: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryEnabled).toBeUndefined()
+      expect(corrections.youtubeMode).toBeUndefined()
+    })
+  })
+
+  describe('Rule 21: gameCommentary-off-stopPlaying', () => {
+    it('gameCommentaryEnabled OFF で gameCommentaryPlaying も OFF', () => {
+      const prev = createBaseState({
+        gameCommentaryEnabled: true,
+        gameCommentaryPlaying: true,
+      })
+      const incoming = { gameCommentaryEnabled: false }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryPlaying).toBe(false)
+    })
+
+    it('他モードの排他で gameCommentaryEnabled が OFF になる場合も再生状態を止める', () => {
+      const prev = createBaseState({
+        gameCommentaryEnabled: true,
+        gameCommentaryPlaying: true,
+      })
+      const incoming = { realtimeAPIMode: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryEnabled).toBe(false)
+      expect(corrections.gameCommentaryPlaying).toBe(false)
+    })
+  })
+
+  describe('Rule 20: presenceDetection-on-disableGameCommentary', () => {
+    it('presenceDetectionEnabled ON で gameCommentaryEnabled が OFF', () => {
+      const prev = createBaseState({
+        gameCommentaryEnabled: true,
+      })
+      const incoming = { presenceDetectionEnabled: true }
+      const { corrections } = computeExclusions(incoming, prev)
+
+      expect(corrections.gameCommentaryEnabled).toBe(false)
+    })
   })
 
   describe('新モード間の非排他', () => {
@@ -638,8 +717,12 @@ describe('disabled条件 (computeDisabledConditions)', () => {
     expect(conditions.conversationContinuityMode).toBe(true)
   })
 
-  it('multiModalMode=never で slideMode, conversationContinuityMode が disabled', () => {
-    const state = createBaseState({ multiModalMode: 'never' })
+  it('マルチモーダル非対応モデルで slideMode, conversationContinuityMode が disabled', () => {
+    const state = createBaseState({
+      selectAIService: 'openai',
+      selectAIModel: 'o1-mini',
+      enableMultiModal: false,
+    })
     const conditions = computeDisabledConditions(state)
 
     expect(conditions.slideMode).toBe(true)

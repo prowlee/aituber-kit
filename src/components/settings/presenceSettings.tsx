@@ -112,8 +112,13 @@ const PresenceSettings = () => {
   const audioMode = settingsStore((s) => s.audioMode)
   const externalLinkageMode = settingsStore((s) => s.externalLinkageMode)
   const slideMode = settingsStore((s) => s.slideMode)
+  const gameCommentaryEnabled = settingsStore((s) => s.gameCommentaryEnabled)
   const isPresenceDisabled =
-    realtimeAPIMode || audioMode || externalLinkageMode || slideMode
+    realtimeAPIMode ||
+    audioMode ||
+    externalLinkageMode ||
+    slideMode ||
+    gameCommentaryEnabled
 
   // カメラデバイス一覧を取得
   const loadCameraDevices = useCallback(async () => {

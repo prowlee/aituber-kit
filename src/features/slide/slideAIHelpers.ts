@@ -11,12 +11,9 @@ export const judgeSlide = async (
   const aiService = ss.selectAIService
   const aiModel = ss.selectAIModel
   const enableMultiModal = ss.enableMultiModal
-  const multiModalMode = ss.multiModalMode
 
   // 現在選択されているモデルがマルチモーダル使用可能かチェック
-  if (
-    !isMultiModalAvailable(aiService, aiModel, enableMultiModal, multiModalMode)
-  ) {
+  if (!isMultiModalAvailable(aiService, aiModel, enableMultiModal)) {
     throw new Error('Selected model does not support multimodal features')
   }
 

@@ -18,6 +18,13 @@ import {
   DEFAULT_KIOSK_CONFIG,
 } from '@/features/kiosk/kioskTypes'
 import {
+  GameCommentarySettings,
+  DEFAULT_GAME_COMMENTARY_CONFIG,
+  clampBackgroundAnalysisInterval,
+  clampCaptureInterval,
+  clampContextCount,
+} from '@/features/gameCommentary/gameCommentaryTypes'
+import {
   AIService,
   AIVoice,
   Language,
@@ -236,6 +243,7 @@ interface General {
   dynamicRetrievalThreshold: number
   maxPastMessages: number
   useVideoAsBackground: boolean
+  hideVideoDisplay: boolean
   temperature: number
   maxTokens: number
   reasoningMode: boolean
@@ -252,7 +260,6 @@ interface General {
   initialSpeechTimeout: number
   chatLogWidth: number
   imageDisplayPosition: 'input' | 'side' | 'icon'
-  multiModalMode: 'ai-decide' | 'always' | 'never'
   multiModalAiDecisionPrompt: string
   enableMultiModal: boolean
   colorTheme: 'default' | 'cool' | 'mono' | 'ocean' | 'forest' | 'sunset'
@@ -288,7 +295,14 @@ export type SettingsState = APIKeys &
   MemoryConfig &
   PresenceDetectionSettings &
   IdleModeSettings &
-  KioskModeSettings
+  KioskModeSettings &
+  GameCommentarySettings
+
+// 0を有効値として扱う環境変数用の数値パーサー（`parseInt(...) || default` は "0" がdefaultに化ける）
+const parseEnvInt = (value: string | undefined, fallback: number): number => {
+  const parsed = parseInt(value ?? '', 10)
+  return Number.isNaN(parsed) ? fallback : parsed
+}
 
 // Function to get initial values from environment variables
 const getInitialValuesFromEnv = (): SettingsState => ({
@@ -559,6 +573,7 @@ const getInitialValuesFromEnv = (): SettingsState => ({
     parseInt(process.env.NEXT_PUBLIC_MAX_PAST_MESSAGES || '10') || 10,
   useVideoAsBackground:
     process.env.NEXT_PUBLIC_USE_VIDEO_AS_BACKGROUND === 'true',
+  hideVideoDisplay: process.env.NEXT_PUBLIC_HIDE_VIDEO_DISPLAY === 'true',
   temperature: parseFloat(process.env.NEXT_PUBLIC_TEMPERATURE || '1.0') || 1.0,
   maxTokens: parseInt(process.env.NEXT_PUBLIC_MAX_TOKENS || '4096') || 4096,
   reasoningMode: process.env.NEXT_PUBLIC_REASONING_MODE === 'true',
@@ -600,13 +615,6 @@ const getInitialValuesFromEnv = (): SettingsState => ({
     return validPositions.includes(envPosition as any)
       ? (envPosition as 'input' | 'side' | 'icon')
       : 'input'
-  })(),
-  multiModalMode: (() => {
-    const validModes = ['ai-decide', 'always', 'never'] as const
-    const envMode = process.env.NEXT_PUBLIC_MULTIMODAL_MODE
-    return validModes.includes(envMode as any)
-      ? (envMode as 'ai-decide' | 'always' | 'never')
-      : 'ai-decide'
   })(),
   multiModalAiDecisionPrompt:
     process.env.NEXT_PUBLIC_MULTIMODAL_AI_DECISION_PROMPT || '',
@@ -782,6 +790,51 @@ const getInitialValuesFromEnv = (): SettingsState => ({
     DEFAULT_KIOSK_CONFIG.kioskGuidanceTimeout,
   kioskTemporaryUnlock: DEFAULT_KIOSK_CONFIG.kioskTemporaryUnlock,
 
+  // Game commentary settings
+  gameCommentaryEnabled:
+    process.env.NEXT_PUBLIC_GAME_COMMENTARY_ENABLED === 'true' ||
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryEnabled,
+  gameCommentaryPlaying: DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryPlaying,
+  gameCommentaryCaptureInterval: clampCaptureInterval(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_CAPTURE_INTERVAL,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryCaptureInterval
+    )
+  ),
+  gameCommentaryContextCount: clampContextCount(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_CONTEXT_COUNT,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryContextCount
+    )
+  ),
+  gameCommentaryPromptTemplate:
+    process.env.NEXT_PUBLIC_GAME_COMMENTARY_PROMPT_TEMPLATE ||
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryPromptTemplate,
+  gameCommentaryBackgroundAnalysisPromptTemplate:
+    process.env
+      .NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_PROMPT_TEMPLATE ||
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisPromptTemplate,
+  gameCommentaryImageQuality:
+    parseFloat(process.env.NEXT_PUBLIC_GAME_COMMENTARY_IMAGE_QUALITY || '') ||
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryImageQuality,
+  gameCommentaryResizeWidth: parseEnvInt(
+    process.env.NEXT_PUBLIC_GAME_COMMENTARY_RESIZE_WIDTH,
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryResizeWidth
+  ),
+  gameCommentarySaveToChat: process.env.NEXT_PUBLIC_GAME_COMMENTARY_SAVE_TO_CHAT
+    ? process.env.NEXT_PUBLIC_GAME_COMMENTARY_SAVE_TO_CHAT === 'true'
+    : DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentarySaveToChat,
+  gameCommentaryBackgroundAnalysisEnabled:
+    process.env.NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_ENABLED ===
+      'true' ||
+    DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisEnabled,
+  gameCommentaryBackgroundAnalysisInterval: clampBackgroundAnalysisInterval(
+    parseEnvInt(
+      process.env.NEXT_PUBLIC_GAME_COMMENTARY_BACKGROUND_ANALYSIS_INTERVAL,
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisInterval
+    )
+  ),
+
   // Live2D settings
   neutralEmotions: process.env.NEXT_PUBLIC_NEUTRAL_EMOTIONS?.split(',') || [],
   happyEmotions: process.env.NEXT_PUBLIC_HAPPY_EMOTIONS?.split(',') || [],
@@ -800,13 +853,16 @@ const getInitialValuesFromEnv = (): SettingsState => ({
 })
 
 type PersistedSettingsState = Partial<SettingsState> & {
+  multiModalMode?: 'always' | 'never' | 'ai-decide'
   presenceGreetingMessage?: string
   presenceDepartureMessage?: string
+  gameCommentaryVideoBufferWidth?: number
+  gameCommentaryVideoDelay?: number
 }
 
 const migratePersistedSettings = (
   state?: PersistedSettingsState
-): PersistedSettingsState | undefined => {
+): Partial<SettingsState> | undefined => {
   if (!state) return state
 
   const migrated = { ...state }
@@ -836,7 +892,37 @@ const migratePersistedSettings = (
     delete migrated.presenceDepartureMessage
   }
 
-  return migrated
+  // multiModalMode → enableMultiModal へのマイグレーション
+  if (migrated.multiModalMode !== undefined) {
+    migrated.enableMultiModal = migrated.multiModalMode !== 'never'
+    delete migrated.multiModalMode
+  }
+
+  // Game commentary migration: ensure defaults for new fields
+  if (migrated.gameCommentaryEnabled === undefined) {
+    migrated.gameCommentaryEnabled =
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryEnabled
+  }
+  if (migrated.gameCommentaryPromptTemplate === undefined) {
+    migrated.gameCommentaryPromptTemplate =
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryPromptTemplate
+  }
+  if (migrated.gameCommentaryBackgroundAnalysisPromptTemplate === undefined) {
+    migrated.gameCommentaryBackgroundAnalysisPromptTemplate =
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisPromptTemplate
+  }
+  if (migrated.gameCommentaryBackgroundAnalysisEnabled === undefined) {
+    migrated.gameCommentaryBackgroundAnalysisEnabled =
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisEnabled
+  }
+  if (migrated.gameCommentaryBackgroundAnalysisInterval === undefined) {
+    migrated.gameCommentaryBackgroundAnalysisInterval =
+      DEFAULT_GAME_COMMENTARY_CONFIG.gameCommentaryBackgroundAnalysisInterval
+  }
+  delete migrated.gameCommentaryVideoBufferWidth
+  delete migrated.gameCommentaryVideoDelay
+
+  return migrated as Partial<SettingsState>
 }
 
 const mergePersistedSettings = (
@@ -976,6 +1062,7 @@ const settingsStore = create<SettingsState>()(
         audioMode: state.audioMode,
         audioModeInputType: state.audioModeInputType,
         audioModeVoice: state.audioModeVoice,
+        slideMode: state.slideMode,
         messageReceiverEnabled: state.messageReceiverEnabled,
         clientId: state.clientId,
         useSearchGrounding: state.useSearchGrounding,
@@ -1015,6 +1102,7 @@ const settingsStore = create<SettingsState>()(
         surprisedMotionGroup: state.surprisedMotionGroup,
         maxPastMessages: state.maxPastMessages,
         useVideoAsBackground: state.useVideoAsBackground,
+        hideVideoDisplay: state.hideVideoDisplay,
         showQuickMenu: state.showQuickMenu,
         temperature: state.temperature,
         maxTokens: state.maxTokens,
@@ -1039,7 +1127,6 @@ const settingsStore = create<SettingsState>()(
         initialSpeechTimeout: state.initialSpeechTimeout,
         chatLogWidth: state.chatLogWidth,
         imageDisplayPosition: state.imageDisplayPosition,
-        multiModalMode: state.multiModalMode,
         multiModalAiDecisionPrompt: state.multiModalAiDecisionPrompt,
         enableMultiModal: state.enableMultiModal,
         colorTheme: state.colorTheme,
@@ -1083,6 +1170,20 @@ const settingsStore = create<SettingsState>()(
         kioskNgWordEnabled: state.kioskNgWordEnabled,
         thinkingPoseEnabled: state.thinkingPoseEnabled,
         thinkingPoseId: state.thinkingPoseId,
+        // Game commentary settings
+        gameCommentaryEnabled: state.gameCommentaryEnabled,
+        gameCommentaryCaptureInterval: state.gameCommentaryCaptureInterval,
+        gameCommentaryContextCount: state.gameCommentaryContextCount,
+        gameCommentaryPromptTemplate: state.gameCommentaryPromptTemplate,
+        gameCommentaryBackgroundAnalysisPromptTemplate:
+          state.gameCommentaryBackgroundAnalysisPromptTemplate,
+        gameCommentaryImageQuality: state.gameCommentaryImageQuality,
+        gameCommentaryResizeWidth: state.gameCommentaryResizeWidth,
+        gameCommentarySaveToChat: state.gameCommentarySaveToChat,
+        gameCommentaryBackgroundAnalysisEnabled:
+          state.gameCommentaryBackgroundAnalysisEnabled,
+        gameCommentaryBackgroundAnalysisInterval:
+          state.gameCommentaryBackgroundAnalysisInterval,
       }),
     })
   )

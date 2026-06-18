@@ -18,6 +18,7 @@ import Images from './images'
 import MemorySettings from './memorySettings'
 import PresenceSettings from './presenceSettings'
 import IdleSettings from './idleSettings'
+import GameCommentarySettings from './gameCommentarySettings'
 import KioskSettings from './kioskSettings'
 
 type Props = {
@@ -43,6 +44,7 @@ const Header = ({ onClickClose }: Pick<Props, 'onClickClose'>) => {
           iconName="24/Close"
           isProcessing={false}
           onClick={onClickClose}
+          data-testid="close-settings-button"
         ></IconButton>
       </div>
     </>
@@ -62,6 +64,7 @@ type TabKey =
   | 'memory'
   | 'presence'
   | 'idle'
+  | 'gameCommentary'
   | 'kiosk'
   | 'other'
   | 'speechInput'
@@ -79,6 +82,7 @@ const tabIconMapping: Record<TabKey, string> = {
   memory: '/images/setting-icons/memory-settings.svg',
   presence: '/images/setting-icons/presence-settings.svg',
   idle: '/images/setting-icons/idle-settings.svg',
+  gameCommentary: '/images/setting-icons/gamecommentary-settings.svg',
   kiosk: '/images/setting-icons/kiosk-settings.svg',
   other: '/images/setting-icons/other-settings.svg',
   speechInput: '/images/setting-icons/microphone-settings.svg',
@@ -165,6 +169,10 @@ const Main = () => {
       label: t('IdleSettings'),
     },
     {
+      key: 'gameCommentary',
+      label: t('GameCommentarySettings'),
+    },
+    {
       key: 'kiosk',
       label: t('KioskSettings'),
     },
@@ -198,6 +206,8 @@ const Main = () => {
         return <PresenceSettings />
       case 'idle':
         return <IdleSettings />
+      case 'gameCommentary':
+        return <GameCommentarySettings />
       case 'kiosk':
         return <KioskSettings />
       case 'other':
@@ -221,6 +231,7 @@ const Main = () => {
                   <button
                     className={`flex items-center py-2 px-4 rounded-lg w-full text-left ${activeTab === tab.key ? 'text-theme bg-primary' : ''}`}
                     onClick={() => setActiveTab(tab.key)}
+                    data-testid={`settings-tab-${tab.key}`}
                   >
                     <div
                       className={`w-5 h-5 mr-2 ${
@@ -282,6 +293,7 @@ const Main = () => {
                     key={tab.key}
                     className={`flex items-center w-full py-3 px-4 text-left hover:bg-gray-50 ${activeTab === tab.key ? 'bg-primary text-theme' : ''}`}
                     onClick={() => setActiveTab(tab.key)}
+                    data-testid={`settings-tab-${tab.key}`}
                   >
                     <div
                       className={`w-5 h-5 mr-2 ${
@@ -304,7 +316,10 @@ const Main = () => {
           </div>
 
           {/* タブコンテンツ */}
-          <div className="p-4 sm:p-6 bg-gray-400 bg-opacity-20 text-medium rounded-lg w-full">
+          <div
+            className="p-4 sm:p-6 bg-gray-400 bg-opacity-20 text-medium rounded-lg w-full"
+            data-testid="settings-panel"
+          >
             {renderTabContent()}
           </div>
         </div>

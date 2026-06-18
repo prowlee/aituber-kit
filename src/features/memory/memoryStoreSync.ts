@@ -10,6 +10,8 @@ import { getMemoryService } from './memoryService'
 import { MemoryContextBuilder } from './memoryContextBuilder'
 import settingsStore from '@/features/stores/settings'
 
+export const DEFAULT_MEMORY_CONTEXT_TIMEOUT_MS = 400
+
 /**
  * メッセージをMemoryServiceに保存する
  *
@@ -48,6 +50,16 @@ export async function saveMessageToMemory(message: Message): Promise<void> {
  * @returns システムプロンプトに追加するコンテキスト文字列
  */
 export async function searchMemoryContext(query: string): Promise<string> {
+  return searchMemoryContextWithTimeout(
+    query,
+    DEFAULT_MEMORY_CONTEXT_TIMEOUT_MS
+  )
+}
+
+export async function searchMemoryContextWithTimeout(
+  query: string,
+  timeoutMs: number
+): Promise<string> {
   // 空/空白のみのクエリをスキップ
   if (!query || !query.trim()) return ''
 
@@ -58,10 +70,26 @@ export async function searchMemoryContext(query: string): Promise<string> {
   if (!memoryService.isAvailable()) return ''
 
   try {
-    const memories = await memoryService.searchMemories(query, {
+    const searchPromise = memoryService.searchMemories(query, {
       threshold: ss.memorySimilarityThreshold,
       limit: ss.memorySearchLimit,
     })
+    type SearchResult = Awaited<typeof searchPromise>
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const memories =
+      timeoutMs > 0
+        ? await Promise.race([
+            searchPromise.finally(() => {
+              if (timeoutId) {
+                clearTimeout(timeoutId)
+              }
+            }),
+            new Promise<SearchResult>((resolve) => {
+              timeoutId = setTimeout(() => resolve([]), timeoutMs)
+            }),
+          ])
+        : await searchPromise
 
     if (memories.length === 0) return ''
 

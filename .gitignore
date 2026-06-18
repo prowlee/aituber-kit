@@ -80,6 +80,8 @@ public/pngtuber/*
 
 # Playwright reports
 /reports
+/playwright-report
+/test-results
 
 # Cloudflare
 .open-next
@@ -89,8 +91,12 @@ aituber-kit-lp/*
 aituber-kit-docs/*
 promo-video/*
 .claude/skills/remotion-*
+.agents/skills/remotion-*
 
 # Local caches
 .mypy_cache
 .swc
 .wrangler
+
+.team/*
+.claude/scheduled_tasks.lock

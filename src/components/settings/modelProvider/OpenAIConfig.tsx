@@ -34,7 +34,6 @@ interface OpenAIConfigProps {
   selectAIModel: string
   customModel: boolean
   enableMultiModal: boolean
-  multiModalMode: string
   updateMultiModalModeForModel: (service: AIService, model: string) => void
 }
 
@@ -49,7 +48,6 @@ export const OpenAIConfig = ({
   selectAIModel,
   customModel,
   enableMultiModal,
-  multiModalMode,
   updateMultiModalModeForModel,
 }: OpenAIConfigProps) => {
   const { t } = useTranslation()
@@ -106,6 +104,7 @@ export const OpenAIConfig = ({
           <ToggleSwitch
             enabled={realtimeAPIMode}
             onChange={handleRealtimeAPIModeChange}
+            testId="realtime-api-mode-toggle"
           />
         </div>
       </div>
@@ -113,7 +112,11 @@ export const OpenAIConfig = ({
       <div className="my-6">
         <div className="my-4 text-xl font-bold">{t('AudioMode')}</div>
         <div className="my-2">
-          <ToggleSwitch enabled={audioMode} onChange={handleAudioModeChange} />
+          <ToggleSwitch
+            enabled={audioMode}
+            onChange={handleAudioModeChange}
+            testId="audio-mode-toggle"
+          />
         </div>
       </div>
 
