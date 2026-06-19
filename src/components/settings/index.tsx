@@ -548,6 +548,7 @@ const Main = () => {
                   : 'border-gray-200 bg-white text-text1 hover:border-primary/50'
               }`}
               onClick={() => setActiveGroup(group)}
+              data-testid={`settings-group-${group.key}`}
             >
               {group.label}
             </button>
