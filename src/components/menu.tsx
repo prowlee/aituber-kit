@@ -296,7 +296,7 @@ export const Menu = () => {
               </div>
               {showToolMenu && (
                 <div
-                  className="absolute left-0 top-full z-20 mt-2 grid w-max min-w-[180px] max-w-[calc(100vw-24px)] gap-2 rounded-lg border border-gray-200 bg-white/95 p-2 shadow-xl backdrop-blur sm:min-w-[220px]"
+                  className="theme-surface-popover absolute left-0 top-full z-20 mt-2 grid w-max min-w-[180px] max-w-[calc(100vw-24px)] gap-2 rounded-lg border p-2 shadow-xl backdrop-blur sm:min-w-[220px]"
                   data-testid="main-tools-menu"
                 >
                   <ToolMenuButton
@@ -478,7 +478,7 @@ const ToolMenuButton = ({
     backgroundColor={
       active
         ? 'bg-primary hover:bg-primary-hover active:bg-primary-press'
-        : 'bg-white hover:bg-white-hover active:bg-gray-100 border border-gray-200'
+        : 'theme-surface-control border'
     }
     iconColor={active ? 'text-theme' : 'text-text1'}
     className={`w-full !justify-start rounded-lg ${rest.className ?? ''}`}

@@ -548,7 +548,9 @@ export async function openSettingsTab(page: Page, tab: string) {
 
 async function openMobileSettingsTabGroup(page: Page, tab: string) {
   const tabGroup = settingsTabGroups[tab]
-  if (!tabGroup) return
+  if (!tabGroup) {
+    throw new Error(`Unknown settings tab group mapping for tab: ${tab}`)
+  }
 
   const groupButton = page
     .getByTestId(`settings-group-${tabGroup}`)

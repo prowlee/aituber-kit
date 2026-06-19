@@ -445,10 +445,16 @@ const Main = () => {
       }))
       .filter((group) => group.tabs.length > 0)
   }, [groups, normalizedSearchQuery])
+  const activeTabGroup =
+    groups.find((group) => group.tabs.some((tab) => tab.key === activeTab))
+      ?.key ?? activeMobileGroup
+  const selectedMobileGroup = normalizedSearchQuery
+    ? activeMobileGroup
+    : activeTabGroup
 
   const visibleMobileTabs = normalizedSearchQuery
     ? visibleGroups.flatMap((group) => group.tabs)
-    : (visibleGroups.find((group) => group.key === activeMobileGroup)?.tabs ??
+    : (visibleGroups.find((group) => group.key === selectedMobileGroup)?.tabs ??
       visibleGroups[0]?.tabs ??
       [])
 
@@ -543,7 +549,7 @@ const Main = () => {
             <button
               key={group.key}
               className={`h-10 shrink-0 rounded-lg border px-4 text-sm font-bold shadow-sm ${
-                activeMobileGroup === group.key
+                selectedMobileGroup === group.key
                   ? 'border-primary bg-primary text-theme'
                   : 'border-gray-200 bg-white text-text1 hover:border-primary/50'
               }`}
