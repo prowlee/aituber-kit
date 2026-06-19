@@ -49,6 +49,7 @@ body {
   [data-testid='settings-panel'] textarea,
   [data-testid='settings-panel'] select {
     @apply !border shadow-sm outline-none transition;
+
     border-color: color-mix(
       in srgb,
       var(--color-primary) 24%,
@@ -78,7 +79,6 @@ body {
       var(--color-secondary) 34%,
       var(--color-text-base)
     );
-
     box-shadow: 0 0 0 1px
       color-mix(in srgb, var(--color-secondary) 70%, transparent);
     color: inherit;
